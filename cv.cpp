@@ -1,4 +1,5 @@
 
+#include <omp.h>
 #include <stdio.h>
 #include "cv_util.h"
 #include "LM.hpp"
@@ -10,7 +11,10 @@ int main() {
 
   // Number of CVs
   const int M = 149;
-  
+
+  // Number of CV combinations
+  const int m = 3;
+
   // q[M][N]
   double* q = new double[M*N];
   int* hA = new int[N];
@@ -75,71 +79,164 @@ int main() {
   delete [] blist;
 
   //
+
+#define MAX_NTHREAD 24
+  int nthread;
+#pragma omp parallel
+  {
+    if (omp_get_thread_num() == 0) nthread = omp_get_num_threads();
+  }
+  printf("Using %d threads\n",nthread);
+
+  //
 #define m_max 3
-  int m;
-  int cv[m_max];
   double crit_move = 0.001;
   double crit_grad = 0.01;
   double crit_dlnL = 0.0001;
   double maxsize = 0.1;
-  double alnLmax[m_max+2];
-  double max_val[m_max+2];
-  int max_ind[m_max];
-  LM *lm;
+  double max_val[MAX_NTHREAD][m_max+2];
+  int max_ind[MAX_NTHREAD][m_max];
 
-  m = 1;
-  lm = new LM(m);
-  max_val[m+1] = -1.0e100;
-  max_ind[0] = -1;
-  for (int i=0;i < M;i++) {
-    cv[0] = i;
-    lm->calc_lm(false, m, cv, nalist, nblist, M, zA, zB, crit_move, crit_grad, crit_dlnL, maxsize, alnLmax);
-    printf("%d rxncoor",i+1);
-    for (int jj=0;jj < m+2;jj++) printf(" %f",alnLmax[jj]);
-    printf("\n");
-    if (alnLmax[m+1] > max_val[m+1]) {
-      for (int jj=0;jj < m+2;jj++) max_val[jj] = alnLmax[jj];
-      max_ind[0] = i;
+  if (m == 1) {
+#pragma omp parallel
+    {
+      int tid = omp_get_thread_num();
+      double alnLmax[m_max+2];
+      LM *lm = new LM(m);
+      max_val[tid][m+1] = -1.0e100;
+      max_ind[tid][0] = -1;
+      int i;
+#pragma omp for private(i) schedule(dynamic)
+      for (i=0;i < M;i++) {
+	int cv[m_max];
+	cv[0] = i;
+	lm->calc_lm(false, m, cv, nalist, nblist, M, zA, zB, crit_move, crit_grad, crit_dlnL, maxsize, alnLmax);
+	printf("%d rxncoor",i+1);
+	for (int jj=0;jj < m+2;jj++) printf(" %f",alnLmax[jj]);
+	printf("\n");
+	if (alnLmax[m+1] > max_val[tid][m+1]) {
+	  for (int jj=0;jj < m+2;jj++) max_val[tid][jj] = alnLmax[jj];
+	  max_ind[tid][0] = i;
+	}
+      }
+      delete lm;
     }
-  }
-  if (max_ind[0] == -1) {
-    printf("ERROR\n");
-    return 0;
-  }
-  printf("best rxncoor %d",max_ind[0]+1);
-  for (int jj=0;jj < m+2;jj++) printf(" %f",max_val[jj]);
-  printf("\n");
-  delete lm;
-
-  m = 2;
-  lm = new LM(m);
-  max_val[m+1] = -1.0e100;
-  max_ind[0] = -1;
-  max_ind[1] = -1;
-  for (int i=0;i < M;i++) {
-    cv[0] = i;
-    for (int j=0;j < M;j++) {
-      cv[1] = j;
-      lm->calc_lm(false, m, cv, nalist, nblist, M, zA, zB, crit_move, crit_grad, crit_dlnL, maxsize, alnLmax);
-      printf("%d %d rxncoor",i+1,j+1);
-      for (int jj=0;jj < m+2;jj++) printf(" %f",alnLmax[jj]);
-      printf("\n");
-      if (alnLmax[m+1] > max_val[m+1]) {
-	for (int jj=0;jj < m+2;jj++) max_val[jj] = alnLmax[jj];
-	max_ind[0] = i;
-	max_ind[1] = j;
+    
+    for (int i=1;i < nthread;i++) {
+      if (max_val[i][m+1] > max_val[0][m+1]) {
+	for (int jj=0;jj < m+2;jj++) max_val[0][jj] = max_val[i][jj];
+	max_ind[0][0] = max_ind[i][0];
       }
     }
+    
+    if (max_ind[0][0] == -1) {
+      printf("ERROR\n");
+      return 0;
+    }
+    printf("best rxncoor %d",max_ind[0][0]+1);
+    for (int jj=0;jj < m+2;jj++) printf(" %f",max_val[0][jj]);
+    printf("\n");
+  } else if (m == 2) {
+#pragma omp parallel
+    {
+      int tid = omp_get_thread_num();
+      double alnLmax[m_max+2];
+      LM *lm = new LM(m);
+      max_val[tid][m+1] = -1.0e100;
+      max_ind[tid][0] = -1;
+      max_ind[tid][1] = -1;
+      int i;
+#pragma omp for private(i) schedule(dynamic)
+      for (i=0;i < M;i++) {
+	int cv[m_max];
+	cv[0] = i;
+	for (int j=0;j < M;j++) {
+	  cv[1] = j;
+	  lm->calc_lm(false, m, cv, nalist, nblist, M, zA, zB, crit_move, crit_grad, crit_dlnL, maxsize, alnLmax);
+	  printf("%d %d rxncoor",i+1,j+1);
+	  for (int jj=0;jj < m+2;jj++) printf(" %f",alnLmax[jj]);
+	  printf("\n");
+	  if (alnLmax[m+1] > max_val[tid][m+1]) {
+	    for (int jj=0;jj < m+2;jj++) max_val[tid][jj] = alnLmax[jj];
+	    max_ind[tid][0] = i;
+	    max_ind[tid][1] = j;
+	  }
+	}
+      }
+      delete lm;
+    }
+    
+    for (int i=1;i < nthread;i++) {
+      if (max_val[i][m+1] > max_val[0][m+1]) {
+	for (int jj=0;jj < m+2;jj++) max_val[0][jj] = max_val[i][jj];
+	max_ind[0][0] = max_ind[i][0];
+	max_ind[0][1] = max_ind[i][1];
+      }
+    }
+    
+    if (max_ind[0][0] == -1) {
+      printf("ERROR\n");
+      return 0;
+    }
+    printf("best rxncoor %d %d",max_ind[0][0]+1,max_ind[0][1]+1);
+    for (int jj=0;jj < m+2;jj++) printf(" %f",max_val[0][jj]);
+    printf("\n");
+  } else if (m == 3) {
+#pragma omp parallel
+    {
+      int tid = omp_get_thread_num();
+      double alnLmax[m_max+2];
+      LM *lm = new LM(m);
+      max_val[tid][m+1] = -1.0e100;
+      max_ind[tid][0] = -1;
+      max_ind[tid][1] = -1;
+      max_ind[tid][3] = -1;
+      int i;
+#pragma omp for private(i) schedule(dynamic)
+      for (i=0;i < M;i++) {
+	int cv[m_max];
+	cv[0] = i;
+	for (int j=0;j < M;j++) {
+	  cv[1] = j;
+	  for (int k=0;k < M;k++) {
+	    cv[2] = k;
+	    lm->calc_lm(false, m, cv, nalist, nblist, M, zA, zB, crit_move, crit_grad, crit_dlnL, maxsize, alnLmax);
+	    printf("%d %d %d rxncoor",i+1,j+1,k+1);
+	    for (int jj=0;jj < m+2;jj++) printf(" %f",alnLmax[jj]);
+	    printf("\n");
+	    if (alnLmax[m+1] > max_val[tid][m+1]) {
+	      for (int jj=0;jj < m+2;jj++) max_val[tid][jj] = alnLmax[jj];
+	      max_ind[tid][0] = i;
+	      max_ind[tid][1] = j;
+	      max_ind[tid][1] = k;
+	    }
+	  }
+	}
+      }
+      delete lm;
+    }
+    
+    for (int i=1;i < nthread;i++) {
+      if (max_val[i][m+1] > max_val[0][m+1]) {
+	for (int jj=0;jj < m+2;jj++) max_val[0][jj] = max_val[i][jj];
+	max_ind[0][0] = max_ind[i][0];
+	max_ind[0][1] = max_ind[i][1];
+	max_ind[0][1] = max_ind[i][2];
+      }
+    }
+    
+    if (max_ind[0][0] == -1) {
+      printf("ERROR\n");
+      return 0;
+    }
+    printf("best rxncoor %d %d %d",max_ind[0][0]+1,max_ind[0][1]+1,max_ind[0][2]+1);
+    for (int jj=0;jj < m+2;jj++) printf(" %f",max_val[0][jj]);
+    printf("\n");
+  } else {
+    printf("Incorrect m value\n");
   }
-  if (max_ind[0] == -1) {
-    printf("ERROR\n");
-    return 0;
-  }
-  printf("best rxncoor %d %d",max_ind[0]+1,max_ind[1]+1);
-  for (int jj=0;jj < m+2;jj++) printf(" %f",max_val[jj]);
-  printf("\n");
-  delete lm;
 
+  /*
   m = 3;
   lm = new LM(m);
   max_val[m+1] = -1.0e100;
@@ -173,6 +270,7 @@ int main() {
   for (int jj=0;jj < m+2;jj++) printf(" %f",max_val[jj]);
   printf("\n");
   delete lm;
+  */
 
   delete [] zA;
   delete [] zB;

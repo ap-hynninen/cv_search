@@ -19,10 +19,12 @@ SRC = cv.cpp cv_util.cpp LM.cpp
 
 OBJS = cv.o cv_util.o LM.o
 
-ifeq ($(OS),Linux)
-LFLAGS = -std=c++0x
+ifeq ($(INTEL_COMPILER),1)
+CFLAGS = -O3 -g -openmp
+LFLAGS = -O3 -g -std=c++0x -openmp
 else
-LFLAGS = -lstdc++.6
+CFLAGS = -O3 -g -fopenmp
+LFLAGS = -O3 -g -lstdc++.6 -fopenmp
 endif
 
 all: cv
@@ -39,7 +41,7 @@ depend:
 	makedepend $(SRC)
 
 %.o : %.cpp
-	$(CC) -c -O3 -std=c++11 -D$(DEFS) $<
+	$(CC) -c $(CFLAGS) -D$(DEFS) $<
 
 # DO NOT DELETE
 

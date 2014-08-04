@@ -286,24 +286,21 @@ void LM::calc_lm(const bool debug, const int m, const int *cv, const int nalist,
 		 const double crit_move, const double crit_grad, const double crit_dlnL, const double maxsize,
 		 double *alnLmax) {
 
-  double *zavg = new double[m+1];
-  double *alpha0 = new double[m+1];
-  double *a = new double[m+1];
-  double *aold = new double[m+1];
-
   for(int j=0;j <= m;j++) zavg[j] = 0.0;
 
   for(int i=1;i <= nalist;i++){
     for(int j=1;j <= m;j++){
-      zavg[j] = zavg[j] + zA[i*M + cv[j]]; //zA[i][j];
+      zavg[j] = zavg[j] + zA[i*M + cv[j-1]]; //zA[i][j];
     }
   }
+
   for(int j=1;j <= m;j++){
     zavg[j] = zavg[j]/((double)nalist);
     alpha0[j] = 0.0;
   }
 
   /*****  SCREEN FOR STARTING VALUES  *****/
+
 
   double mlnl, mlnlold;
 
@@ -320,8 +317,6 @@ void LM::calc_lm(const bool debug, const int m, const int *cv, const int nalist,
     }
   }
 
-  double *H = new double[(m+1)*(m+1)];
-
   alpha0[0] = 0.0;
   alpha0[1] = 0.0;
 
@@ -334,19 +329,6 @@ void LM::calc_lm(const bool debug, const int m, const int *cv, const int nalist,
     }
     H[j*(m+1)+j] = 1.0 + randomf(0.0, 0.1);
   }
-
-  double *dmlnL = new double[m+1];
-  double *x = new double[m+1];
-  double *dmlnLold = new double[m+1];
-  double *Hdx_help = new double[m+1];
-  double *y_help = new double[m+1];
-  double *r_help = new double[m+1];
-  double *S = new double[(m+1)*(m+1)];
-  double *K = new double[(m+1)];
-  double *K_help = new double[(m+1)*(m+1)];
-  double *KK_help = new double[(m+1)*(m+1)];
-  double *x_help = new double[3*(m+1)];
-  double *p_help = new double[(m+1)*(m+1)];
 
   int test = 0;
   for(int i=1;test==0;i++){
