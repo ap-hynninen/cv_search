@@ -13,7 +13,7 @@ int main() {
   const int M = 149;
 
   // Number of CV combinations
-  const int m = 3;
+  const int m = 1;
 
   // q[M][N]
   double* q = new double[M*N];
