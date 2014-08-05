@@ -190,7 +190,7 @@ int main() {
       max_val[tid][m+1] = -1.0e100;
       max_ind[tid][0] = -1;
       max_ind[tid][1] = -1;
-      max_ind[tid][3] = -1;
+      max_ind[tid][2] = -1;
       int i;
 #pragma omp for private(i) schedule(dynamic)
       for (i=0;i < M;i++) {
