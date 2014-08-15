@@ -4,10 +4,35 @@
 #include "cv_util.h"
 #include "LM.hpp"
 
-int main() {
+int LM_from_data();
+int LM_from_coord(char *filename);
 
+int main(int argc, char **argv) {
+
+  if (argc == 1) {
+    LM_from_data();
+  } else {
+    LM_from_coord(argv[1]);
+  }
+
+  return 1;
+}
+
+//
+//
+//
+int LM_from_coord(char *filename) {
+  printf("LM_from_coord = %s\n",filename);
+
+  return 1;
+}
+
+//
+// Does likelihood maximization from data.txt
+//
+int LM_from_data() {
   // Number of shooting points
-  const int N = 10000;
+  const int N = 20000;
 
   // Number of CVs
   const int M = 149;
@@ -102,7 +127,8 @@ int main() {
     {
       int tid = omp_get_thread_num();
       double alnLmax[m_max+2];
-      LM *lm = new LM(m);
+      //LM *lm = new LM(m);
+      LM lm(m);
       max_val[tid][m+1] = -1.0e100;
       max_ind[tid][0] = -1;
       int i;
@@ -110,7 +136,7 @@ int main() {
       for (i=0;i < M;i++) {
 	int cv[m_max];
 	cv[0] = i;
-	lm->calc_lm(false, m, cv, nalist, nblist, M, zA, zB, crit_move, crit_grad, crit_dlnL, maxsize, alnLmax);
+	lm.calc_lm(false, m, cv, nalist, nblist, M, zA, zB, crit_move, crit_grad, crit_dlnL, maxsize, alnLmax);
 	printf("%d rxncoor",i+1);
 	for (int jj=0;jj < m+2;jj++) printf(" %f",alnLmax[jj]);
 	printf("\n");
@@ -119,9 +145,12 @@ int main() {
 	  max_ind[tid][0] = i;
 	}
       }
-      delete lm;
+      fprintf(stderr,"Hello!\n");
+      //delete lm;
     }
-    
+
+    fprintf(stderr,"Hello\n");
+
     for (int i=1;i < nthread;i++) {
       if (max_val[i][m+1] > max_val[0][m+1]) {
 	for (int jj=0;jj < m+2;jj++) max_val[0][jj] = max_val[i][jj];
@@ -274,6 +303,6 @@ int main() {
 
   delete [] zA;
   delete [] zB;
-  
+ 
   return 1;
 }

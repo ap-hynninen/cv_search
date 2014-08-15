@@ -15,9 +15,9 @@ CC = gcc
 CL = gcc
 endif
 
-SRC = cv.cpp cv_util.cpp LM.cpp
+SRC = cv.cpp cv_util.cpp LM.cpp Coord.cpp
 
-OBJS = cv.o cv_util.o LM.o
+OBJS = cv.o cv_util.o LM.o Coord.o
 
 ifeq ($(INTEL_COMPILER),1)
 CFLAGS = -O3 -g -openmp
@@ -47,3 +47,4 @@ depend:
 
 cv.o: LM.hpp cv_util.h
 LM.o: LM.hpp
+Coord.o: Coord.hpp
