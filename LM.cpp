@@ -220,6 +220,12 @@ void LM::projectfrommatrix(const int m, const double *vector, double *hmwc,
   }
 }
 
+int mod(int a, int b)
+{
+  int r = a % b;
+  return r < 0 ? r + b : r;
+}
+
 //
 // hmwc[1+m][1+m], smwc[1+m][1+m], w2[1+m]
 // Helpers: K[1+m][1+m], x[3][1+m], p[1+m][1+m], KK[1+m][1+m]
@@ -247,12 +253,13 @@ void LM::diagonalize(const bool debug, const int m, const double *hmwc, double *
     int test = 0;
     for(int k=1;test == 0;k++){
       for(int j=0;j <= m;j++){
-        x[(k%3)*(m+1)+j] = dot(m, &K[j*(m+1)], &x[((k-1)%3)*(m+1)]);
+        x[mod(k,3)*(m+1)+j] = dot(m, &K[j*(m+1)], &x[mod(k-1,3)*(m+1)]);
       }
-      normalize(m, &x[(k%3)*(m+1)]);
+      normalize(m, &x[mod(k,3)*(m+1)]);
       double relerror = 0.0;
       for(int j=0;j <= m;j++){
-        double diff = x[(k%3)*(m+1)+j] - x[((k-2)%3)*(m+1)+j];
+        double diff = x[mod(k,3)*(m+1)+j];
+	diff -= x[mod(k-2,3)*(m+1)+j];
         relerror = relerror + fabs(diff);
       }
       if((relerror < tolerance && k > 100) || (k == ndiag)){
@@ -288,15 +295,16 @@ void LM::calc_lm(const bool debug, const int m, const int *cv, const int nalist,
 
   for(int j=0;j <= m;j++) zavg[j] = 0.0;
 
-  for(int i=1;i <= nalist;i++){
-    for(int j=1;j <= m;j++){
-      zavg[j] = zavg[j] + zA[i*M + cv[j-1]]; //zA[i][j];
+  for(int i=0;i < nalist;i++){
+    for(int j=0;j < m;j++){
+      int cvj = cv[j];
+      double zAval = zA[i*M + cvj];
+      zavg[j] += zAval; //zA[i*M + cv[j-1]]; //zA[i][j];
     }
   }
 
-  for(int j=1;j <= m;j++){
-    zavg[j] = zavg[j]/((double)nalist);
-    alpha0[j] = 0.0;
+  for(int j=0;j < m;j++){
+    zavg[j] /= ((double)nalist);
   }
 
   /*****  SCREEN FOR STARTING VALUES  *****/
@@ -305,6 +313,8 @@ void LM::calc_lm(const bool debug, const int m, const int *cv, const int nalist,
   double mlnl, mlnlold;
 
   if (debug) printf("\n  GET INITIAL VALUES BY RANDOM NUMBERS");
+  for (int j=0;j <= m;j++) a[j] = 0.0;
+  for (int j=0;j <= m;j++) alpha0[j] = 0.0;
   for(int i=1;i <= 16;i++){
     a[1] = randomf(-2.0, 2.0);
     a[0] = -a[1]*zavg[m];
@@ -317,8 +327,8 @@ void LM::calc_lm(const bool debug, const int m, const int *cv, const int nalist,
     }
   }
 
-  alpha0[0] = 0.0;
-  alpha0[1] = 0.0;
+  //alpha0[0] = 0.0;
+  //alpha0[1] = 0.0;
 
   if (debug) printf("\n  initial a: ");
   for(int j=0;j <= m;j++){
@@ -339,6 +349,10 @@ void LM::calc_lm(const bool debug, const int m, const int *cv, const int nalist,
       }
     }
     double mlnl = grad(m, cv, nalist, nblist, M, a, zA, zB, dmlnL);
+    if (isnan(mlnl)) {
+      printf("mlnl NaN\n");
+      exit(1);
+    }
     if (debug) printf("\n dmlnL = %f %f", dmlnL[0], dmlnL[1]);
     if(i != 1){
       BFGS_update(debug, m, x, dmlnL, dmlnLold, H, Hdx_help, y_help, r_help);

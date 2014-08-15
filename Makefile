@@ -5,7 +5,7 @@ OS := $(shell uname -s)
 # Detect Intel compiler
 INTEL_COMPILER := $(shell which icc | wc -l 2> /dev/null)
 
-DEFS = DUMMY
+DEFS = USE_OPENMP
 
 ifeq ($(INTEL_COMPILER),1)
 CC = icc
@@ -19,12 +19,23 @@ SRC = cv.cpp cv_util.cpp LM.cpp Coord.cpp
 
 OBJS = cv.o cv_util.o LM.o Coord.o
 
+CFLAGS = -O0 -g
+LFLAGS = -O0 -g
+
+ifeq ($(DEFS),USE_OPENMP)
 ifeq ($(INTEL_COMPILER),1)
-CFLAGS = -O3 -g -openmp
-LFLAGS = -O3 -g -std=c++0x -openmp
+CFLAGS += -openmp
+LFLAGS += -openmp
 else
-CFLAGS = -O3 -g -fopenmp
-LFLAGS = -O3 -g -lstdc++.6 -fopenmp
+CFLAGS += -fopenmp
+LFLAGS += -fopenmp
+endif
+endif
+
+ifeq ($(INTEL_COMPILER),1)
+LFLAGS += -std=c++0x
+else
+LFLAGS += -lstdc++.6
 endif
 
 all: cv

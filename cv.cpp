@@ -1,5 +1,7 @@
 
+#ifdef USE_OPENMP
 #include <omp.h>
+#endif
 #include <stdio.h>
 #include "cv_util.h"
 #include "LM.hpp"
@@ -32,7 +34,7 @@ int LM_from_coord(char *filename) {
 //
 int LM_from_data() {
   // Number of shooting points
-  const int N = 20000;
+  const int N = 10000;
 
   // Number of CVs
   const int M = 149;
@@ -45,7 +47,7 @@ int LM_from_data() {
   int* hA = new int[N];
   int* hB = new int[N];
 
-  read_data("data.txt", N, M, q, hA, hB);
+  read_data("first10k_data.txt", N, M, q, hA, hB);
 
   printf("\n  SCANNED INPUT FROM data.txt");
 
@@ -106,12 +108,16 @@ int LM_from_data() {
   //
 
 #define MAX_NTHREAD 24
-  int nthread;
+  int nthread=1;
+#ifdef USE_OPENMP
 #pragma omp parallel
   {
     if (omp_get_thread_num() == 0) nthread = omp_get_num_threads();
   }
-  printf("Using %d threads\n",nthread);
+  printf("Using %d OpenMP threads\n",nthread);
+#else
+  printf("Not using OpenMP threads\n");
+#endif
 
   //
 #define m_max 3
@@ -125,10 +131,13 @@ int LM_from_data() {
   if (m == 1) {
 #pragma omp parallel
     {
+#ifdef USE_OPENMP
       int tid = omp_get_thread_num();
+#else
+      int tid = 0;
+#endif
       double alnLmax[m_max+2];
-      //LM *lm = new LM(m);
-      LM lm(m);
+      LM *lm = new LM(m);
       max_val[tid][m+1] = -1.0e100;
       max_ind[tid][0] = -1;
       int i;
@@ -136,7 +145,9 @@ int LM_from_data() {
       for (i=0;i < M;i++) {
 	int cv[m_max];
 	cv[0] = i;
-	lm.calc_lm(false, m, cv, nalist, nblist, M, zA, zB, crit_move, crit_grad, crit_dlnL, maxsize, alnLmax);
+	bool debug = false;
+	//if (i == 43) debug = true;
+	lm->calc_lm(debug, m, cv, nalist, nblist, M, zA, zB, crit_move, crit_grad, crit_dlnL, maxsize, alnLmax);
 	printf("%d rxncoor",i+1);
 	for (int jj=0;jj < m+2;jj++) printf(" %f",alnLmax[jj]);
 	printf("\n");
@@ -145,11 +156,8 @@ int LM_from_data() {
 	  max_ind[tid][0] = i;
 	}
       }
-      fprintf(stderr,"Hello!\n");
-      //delete lm;
+      delete lm;
     }
-
-    fprintf(stderr,"Hello\n");
 
     for (int i=1;i < nthread;i++) {
       if (max_val[i][m+1] > max_val[0][m+1]) {
@@ -168,7 +176,11 @@ int LM_from_data() {
   } else if (m == 2) {
 #pragma omp parallel
     {
+#ifdef USE_OPENMP
       int tid = omp_get_thread_num();
+#else
+      int tid = 0;
+#endif
       double alnLmax[m_max+2];
       LM *lm = new LM(m);
       max_val[tid][m+1] = -1.0e100;
@@ -213,7 +225,11 @@ int LM_from_data() {
   } else if (m == 3) {
 #pragma omp parallel
     {
+#ifdef USE_OPENMP
       int tid = omp_get_thread_num();
+#else
+      int tid = 0;
+#endif
       double alnLmax[m_max+2];
       LM *lm = new LM(m);
       max_val[tid][m+1] = -1.0e100;
