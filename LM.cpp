@@ -376,7 +376,7 @@ void LM<real>::calc_lm(const bool debug, const int m, const int *cv, const int n
       printf("mlnl NaN\n");
       //exit(1);
       for(int j=0;j<=m;j++){
-	alnLmax[j] = ((real)(-1.0e40));
+	alnLmax[j] = ((real)(-1.0e10));
       }
       return;
     }

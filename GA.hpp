@@ -37,7 +37,9 @@ private:
   float *pair_cv;
 
   // Random number engine
+#ifdef USE_NEW_RANDOM
   std::mt19937 rand_eng;
+#endif
 
   void eval_cv_values();
   //  void build_next_generation_old(const int ntop_pair, const int *top_pair_ind, Pair *top_pair);

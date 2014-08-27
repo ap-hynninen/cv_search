@@ -5,6 +5,11 @@
 #include <iostream>
 #include <algorithm>
 #include <vector>
+#ifdef USE_RANDOM
+#include <random>
+#else
+#include <cstdlib>
+#endif
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
@@ -25,7 +30,11 @@ GA::GA(Coord *coord, const int npair, const int *hA, const int *hB) {
   pair_cv = new float[N*npair];
 
   // Seed random number generator
+#ifdef USE_RANDOM
   rand_eng.seed(123456);
+#else
+  srand(123456);
+#endif
 
   alist = new int[N];
   blist = new int[N];
@@ -78,7 +87,9 @@ void GA::init_population() {
   }
   */
 
+#ifdef USE_RANDOM
   std::uniform_real_distribution<> pick_coord(0.0, 1.0);
+#endif
 
   int ncoord = coord->get_ncoord();
   double coord_pick_rate = 5.0/(double)ncoord;
@@ -89,10 +100,21 @@ void GA::init_population() {
 
   for (int i=1;i < npair;i++) {
     for (int j=0;j < ncoord;j++) {
-      if (pick_coord(rand_eng) < coord_pick_rate) {
+      double r;
+#ifdef USE_RANDOM
+      r = pick_coord(rand_eng);
+#else
+      r = (double)rand()/(double)RAND_MAX;
+#endif
+      if (r < coord_pick_rate) {
 	pair->add1(i, j);
       }
-      if (pick_coord(rand_eng) < coord_pick_rate) {
+#ifdef USE_RANDOM
+      r = pick_coord(rand_eng);
+#else
+      r = (double)rand()/(double)RAND_MAX;
+#endif
+      if (r < coord_pick_rate) {
 	pair->add2(i, j);
       }
     }
@@ -206,8 +228,10 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
   int ntop_pair = npair/10;
   int ncoord = coord->get_ncoord();
 
+#ifdef USE_NEW_RANDOM
   std::uniform_int_distribution<> pick_pair(0,ntop_pair-1);
   std::uniform_real_distribution<> pick_action(0.0, 1.0);
+#endif
 
   Pair new_pair(npair);
 
@@ -234,31 +258,75 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
   }
 
   for (int i=2;i < npair;i++) {
-    if (pick_action(rand_eng) < 0.1) {
+    double r;
+#ifdef USE_NEW_RANDOM
+    r = pick_action(rand_eng);
+#else
+    r = (double)rand()/(double)RAND_MAX;
+#endif
+    if (r < 0.1) {
       // Mutate
-      int a = lnval[pick_pair(rand_eng)].ind;
+      int rpair;
+#ifdef USE_NEW_RANDOM
+      rpair = pick_pair(rand_eng);
+#else
+      rpair = rand() % ntop_pair;
+#endif
+      int a = lnval[rpair].ind;
 
       new_pair.set(i, pair->get_atom1(a), pair->get_atom2(a));
 
       for (int j=0;j < ncoord;j++) {
-	if (pick_action(rand_eng) < 0.01) {
+#ifdef USE_NEW_RANDOM
+	r = pick_action(rand_eng);
+#else
+	r = (double)rand()/(double)RAND_MAX;
+#endif      
+	if (r < 0.01) {
 	  new_pair.flip_atom1(i, j);
 	}
-	if (pick_action(rand_eng) < 0.01) {
+#ifdef USE_NEW_RANDOM
+	r = pick_action(rand_eng);
+#else
+	r = (double)rand()/(double)RAND_MAX;
+#endif      
+	if (r < 0.01) {
 	  new_pair.flip_atom2(i, j);
 	}
       }
     } else {
       // Crossover
-      int a = lnval[pick_pair(rand_eng)].ind;
-      int b = lnval[pick_pair(rand_eng)].ind;
+      int rpair;
+#ifdef USE_NEW_RANDOM
+      rpair = pick_pair(rand_eng);
+#else
+      rpair = rand() % ntop_pair;
+#endif
+      int a = lnval[rpair].ind;
+#ifdef USE_NEW_RANDOM
+      rpair = pick_pair(rand_eng);
+#else
+      rpair = rand() % ntop_pair;
+#endif
+      int b = lnval[rpair].ind;
+
       for (int j=0;j < ncoord;j++) {
-	if (pick_action(rand_eng) < 0.5) {
+#ifdef USE_NEW_RANDOM
+	r = pick_action(rand_eng);
+#else
+	r = (double)rand()/(double)RAND_MAX;
+#endif      
+	if (r < 0.5) {
 	  if (pair->contains1(a, j)) new_pair.add1(i, j);
 	} else {
 	  if (pair->contains1(b, j)) new_pair.add1(i, j);
 	}
-	if (pick_action(rand_eng) < 0.5) {
+#ifdef USE_NEW_RANDOM
+	r = pick_action(rand_eng);
+#else
+	r = (double)rand()/(double)RAND_MAX;
+#endif      
+	if (r < 0.5) {
 	  if (pair->contains2(a, j)) new_pair.add2(i, j);
 	} else {
 	  if (pair->contains2(b, j)) new_pair.add2(i, j);

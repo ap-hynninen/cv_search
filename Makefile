@@ -15,8 +15,6 @@ CC = gcc
 CL = gcc
 endif
 
-#SRC = cv.cpp cv_util.cpp LM.cpp Coord.cpp GA.cpp Pair.cpp
-
 OBJS = cv.o cv_util.o LM.o Coord.o GA.o Pair.o
 
 CFLAGS = -O3 
@@ -33,6 +31,7 @@ endif
 endif
 
 ifeq ($(INTEL_COMPILER),1)
+CFLAGS += -std=c++0x
 LFLAGS += -std=c++0x
 else
 CFLAGS += -std=c++11
@@ -50,9 +49,6 @@ clean:
 	rm -f *~
 	rm -f cv
 	rm -f *.d
-
-#depend:
-#	makedepend $(SRC)
 
 # Pull in dependencies that already exist
 -include $(OBJS:.o=.d)
