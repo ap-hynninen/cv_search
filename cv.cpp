@@ -78,7 +78,7 @@ int LM_from_data() {
   const int M = 149;
 
   // Number of CV combinations
-  const int m = 3;
+  const int m = 1;
 
   // q[M][N]
   double* q = new double[M*N];
@@ -185,7 +185,8 @@ int LM_from_data() {
 	cv[0] = i;
 	bool debug = false;
 	//if (i == 43) debug = true;
-	lm->calc_lm(debug, m, cv, nalist, nblist, M, zA, zB, crit_move, crit_grad, crit_dlnL, maxsize, alnLmax);
+	lm->calc_lm(debug, m, cv, nalist, nblist, M, zA, zB, crit_move, crit_grad, crit_dlnL,
+		    maxsize, alnLmax);
 	printf("%d rxncoor",i+1);
 	for (int jj=0;jj < m+2;jj++) printf(" %f",alnLmax[jj]);
 	printf("\n");
@@ -231,7 +232,8 @@ int LM_from_data() {
 	cv[0] = i;
 	for (int j=0;j < M;j++) {
 	  cv[1] = j;
-	  lm->calc_lm(false, m, cv, nalist, nblist, M, zA, zB, crit_move, crit_grad, crit_dlnL, maxsize, alnLmax);
+	  lm->calc_lm(false, m, cv, nalist, nblist, M, zA, zB, crit_move, crit_grad, crit_dlnL, 
+		      maxsize, alnLmax);
 	  printf("%d %d rxncoor",i+1,j+1);
 	  for (int jj=0;jj < m+2;jj++) printf(" %f",alnLmax[jj]);
 	  printf("\n");
@@ -283,7 +285,8 @@ int LM_from_data() {
 	  cv[1] = j;
 	  for (int k=0;k < M;k++) {
 	    cv[2] = k;
-	    lm->calc_lm(false, m, cv, nalist, nblist, M, zA, zB, crit_move, crit_grad, crit_dlnL, maxsize, alnLmax);
+	    lm->calc_lm(false, m, cv, nalist, nblist, M, zA, zB, crit_move, crit_grad, crit_dlnL,
+			maxsize, alnLmax);
 	    printf("%d %d %d rxncoor",i+1,j+1,k+1);
 	    for (int jj=0;jj < m+2;jj++) printf(" %f",alnLmax[jj]);
 	    printf("\n");
@@ -291,7 +294,7 @@ int LM_from_data() {
 	      for (int jj=0;jj < m+2;jj++) max_val[tid][jj] = alnLmax[jj];
 	      max_ind[tid][0] = i;
 	      max_ind[tid][1] = j;
-	      max_ind[tid][1] = k;
+	      max_ind[tid][2] = k;
 	    }
 	  }
 	}
@@ -304,7 +307,7 @@ int LM_from_data() {
 	for (int jj=0;jj < m+2;jj++) max_val[0][jj] = max_val[i][jj];
 	max_ind[0][0] = max_ind[i][0];
 	max_ind[0][1] = max_ind[i][1];
-	max_ind[0][1] = max_ind[i][2];
+	max_ind[0][2] = max_ind[i][2];
       }
     }
     
