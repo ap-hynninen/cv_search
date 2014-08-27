@@ -1,30 +1,68 @@
-
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
+#include <iostream>
+#include <sys/time.h>
 #include <stdio.h>
 #include "cv_util.h"
 #include "LM.hpp"
+#include "Coord.hpp"
+#include "GA.hpp"
 
 int LM_from_data();
-int LM_from_coord(char *filename);
+int LM_from_coord(char *coord_filename, char *hAB_filename);
 
 int main(int argc, char **argv) {
 
   if (argc == 1) {
     LM_from_data();
+  } else if (argc == 3) {
+    LM_from_coord(argv[1], argv[2]);
   } else {
-    LM_from_coord(argv[1]);
+    std::cout << "Usage: cv coord_filename hAB_filename" << std::endl;
+    return 0;
   }
 
   return 1;
 }
 
+double get_wall_time(){
+  struct timeval time;
+  if (gettimeofday(&time,NULL)){
+    //  Handle error
+    return 0;
+  }
+  return (double)time.tv_sec + (double)time.tv_usec * .000001;
+}
+
 //
+// Does likelihood maximization from coordinate data
 //
-//
-int LM_from_coord(char *filename) {
-  printf("LM_from_coord = %s\n",filename);
+int LM_from_coord(char *coord_filename, char *hAB_filename) {
+  printf("LM_from_coord = %s %s\n",coord_filename,hAB_filename);
+
+  // Population sizes
+  const int npair = 1000;
+  const int ncoord = 73; //882;
+  const int nshoot = 20000;
+
+  Coord coord(coord_filename, ncoord, nshoot);
+
+  const int N = coord.get_nshoot();
+  int *hA = new int[N];
+  int *hB = new int[N];
+  read_hAB(hAB_filename, N, hA, hB);
+
+  GA ga(&coord, npair, hA, hB);
+  delete [] hA;
+  delete [] hB;
+
+  ga.init_population();
+  double start = get_wall_time();
+  ga.run(1);
+  double stop = get_wall_time();
+
+  std::cout << "Elapsed time = " << (stop-start) << " s" << std::endl;
 
   return 1;
 }
@@ -34,20 +72,20 @@ int LM_from_coord(char *filename) {
 //
 int LM_from_data() {
   // Number of shooting points
-  const int N = 10000;
+  const int N = 20000;
 
   // Number of CVs
   const int M = 149;
 
   // Number of CV combinations
-  const int m = 1;
+  const int m = 3;
 
   // q[M][N]
   double* q = new double[M*N];
   int* hA = new int[N];
   int* hB = new int[N];
 
-  read_data("first10k_data.txt", N, M, q, hA, hB);
+  read_data("data.txt", N, M, q, hA, hB);
 
   printf("\n  SCANNED INPUT FROM data.txt");
 
@@ -137,7 +175,7 @@ int LM_from_data() {
       int tid = 0;
 #endif
       double alnLmax[m_max+2];
-      LM *lm = new LM(m);
+      LM<double> *lm = new LM<double>(m);
       max_val[tid][m+1] = -1.0e100;
       max_ind[tid][0] = -1;
       int i;
@@ -182,7 +220,7 @@ int LM_from_data() {
       int tid = 0;
 #endif
       double alnLmax[m_max+2];
-      LM *lm = new LM(m);
+      LM<double> *lm = new LM<double>(m);
       max_val[tid][m+1] = -1.0e100;
       max_ind[tid][0] = -1;
       max_ind[tid][1] = -1;
@@ -231,7 +269,7 @@ int LM_from_data() {
       int tid = 0;
 #endif
       double alnLmax[m_max+2];
-      LM *lm = new LM(m);
+      LM<double> *lm = new LM<double>(m);
       max_val[tid][m+1] = -1.0e100;
       max_ind[tid][0] = -1;
       max_ind[tid][1] = -1;

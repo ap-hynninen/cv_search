@@ -4,29 +4,35 @@
 #include <math.h>
 #include "LM.hpp"
 
+//
 // Class creator
-LM::LM(const int m) {
-  zavg = new double[m+1];
-  alpha0 = new double[m+1];
-  a = new double[m+1];
-  aold = new double[m+1];
-  H = new double[(m+1)*(m+1)];
-  dmlnL = new double[m+1];
-  x = new double[m+1];
-  dmlnLold = new double[m+1];
-  Hdx_help = new double[m+1];
-  y_help = new double[m+1];
-  r_help = new double[m+1];
-  S = new double[(m+1)*(m+1)];
-  K = new double[(m+1)];
-  K_help = new double[(m+1)*(m+1)];
-  KK_help = new double[(m+1)*(m+1)];
-  x_help = new double[3*(m+1)];
-  p_help = new double[(m+1)*(m+1)];
+//
+template <typename real>
+LM<real>::LM(const int m) {
+  zavg = new real[m+1];
+  alpha0 = new real[m+1];
+  a = new real[m+1];
+  aold = new real[m+1];
+  H = new real[(m+1)*(m+1)];
+  dmlnL = new real[m+1];
+  x = new real[m+1];
+  dmlnLold = new real[m+1];
+  Hdx_help = new real[m+1];
+  y_help = new real[m+1];
+  r_help = new real[m+1];
+  S = new real[(m+1)*(m+1)];
+  K = new real[(m+1)];
+  K_help = new real[(m+1)*(m+1)];
+  KK_help = new real[(m+1)*(m+1)];
+  x_help = new real[3*(m+1)];
+  p_help = new real[(m+1)*(m+1)];
 }
 
+//
 // Class destructor
-LM::~LM() {
+//
+template <typename real>
+LM<real>::~LM() {
   delete [] zavg;
   delete [] alpha0;
   delete [] a;
@@ -46,17 +52,19 @@ LM::~LM() {
   delete [] p_help;
 }
 
-double LM::randomf(double a, double b){
-  double aa;
-  aa = ((double)( rand()%10001))/10000.0;
+template <typename real>
+real LM<real>::randomf(real a, real b){
+  real aa;
+  aa = ((real)( rand()%10001))/(real)(10000.0);
   return a+(b-a)*aa;
 }
 
 //
 // a[m+1], z[M]
 //
-double LM::rxn_coor(const int m, const int *cv, const double *a, const double *z){
-  double rc = a[0];
+template <typename real>
+inline real LM<real>::rxn_coor(const int m, const int *cv, const real *a, const real *z){
+  real rc = a[0];
   for(int i=0;i < m;i++) {
     rc += z[cv[i]]*a[i+1];
   }
@@ -66,18 +74,19 @@ double LM::rxn_coor(const int m, const int *cv, const double *a, const double *z
 //
 // a[m+1], zA[nalist][M], zB[nblist][M]
 //
-double LM::mlnL(const int m, const int *cv, const int nalist, const int nblist, const int M,
-	       const double *a, const double *zA, const double *zB){
-  double lnl = ((double)(nalist + nblist))*log(0.5);
+template <typename real>
+real LM<real>::mlnL(const int m, const int *cv, const int nalist, const int nblist, const int M,
+	       const real *a, const real *zA, const real *zB){
+  real lnl = ((real)(nalist + nblist))*log(0.5);
 
   for(int i=0;i < nalist;i++){
-    double rk = rxn_coor(m, cv, a, &zA[i*M]);
-    lnl += log(1.0 - tanh(rk));
+    real rk = rxn_coor(m, cv, a, &zA[i*M]);
+    lnl += log((real)1 - tanh(rk));
   }
 
   for(int i=0;i < nblist;i++){
-    double rk = rxn_coor(m, cv, a, &zB[i*M]);
-    lnl += log(1.0 + tanh(rk));
+    real rk = rxn_coor(m, cv, a, &zB[i*M]);
+    lnl += log((real)1 + tanh(rk));
   }
 
   return (-lnl);
@@ -86,27 +95,35 @@ double LM::mlnL(const int m, const int *cv, const int nalist, const int nblist, 
 //
 // a[m+1], zA[nalist][M], zB[nblist][M], dmlnL[m+1]
 //
-double LM::grad(const int m, const int *cv, const int nalist, const int nblist, const int M,
-		const double *a, const double *zA, const double *zB, double *dmlnL){
+template <typename real>
+real LM<real>::grad(const int m, const int *cv, const int nalist, const int nblist, const int M,
+		const real *a, const real *zA, const real *zB, real *dmlnL){
 
-  double lnl = -mlnL(m, cv, nalist, nblist, M, a, zA, zB);
+  //real lnl = -mlnL(m, cv, nalist, nblist, M, a, zA, zB);
+  real lnl = ((real)(nalist + nblist))*log((real)0.5);
 
   for(int i=0;i <= m;i++) {
-    dmlnL[i] = 0.0;
+    dmlnL[i] = (real)0;
   }
 
+#pragma simd
   for(int i=0;i < nalist;i++) {
-    double rk = rxn_coor(m, cv, a, &zA[i*M]);
-    double C = 1.0 + tanh(rk);
+    real rk = rxn_coor(m, cv, a, &zA[i*M]);
+    real tanh_rk = tanh(rk);
+    lnl += log((real)1 - tanh_rk);
+    real C = (real)1 + tanh_rk;
     dmlnL[0] += C;
     for(int j=0;j < m;j++){
       dmlnL[j+1] += C*zA[i*M + cv[j]];
     }
   }
 
+#pragma simd
   for(int i=0;i < nblist;i++){
-    double rk = rxn_coor(m, cv, a, &zB[i*M]);
-    double C = 1.0 - tanh(rk);
+    real rk = rxn_coor(m, cv, a, &zB[i*M]);
+    real tanh_rk = tanh(rk);
+    lnl += log((real)1 + tanh_rk);
+    real C = (real)1 - tanh_rk;
     dmlnL[0] -= C;
     for(int j=0;j < m;j++) {
       dmlnL[j+1] -= C*zB[i*M + cv[j]];
@@ -119,10 +136,11 @@ double LM::grad(const int m, const int *cv, const int nalist, const int nblist, 
 //
 // v[m+1], u[m+1]
 //
-double LM::dot(const int m, const double *v, const double *u){
+template <typename real>
+real LM<real>::dot(const int m, const real *v, const real *u){
   int k;
-  double dp;
-  dp = 0.0;
+  real dp;
+  dp = (real)0;
   for(k=0;k<=m;k=k+1){
     dp = dp+v[k]*u[k];
   }
@@ -135,8 +153,9 @@ double LM::dot(const int m, const double *v, const double *u){
 // Help arrays: Hdx[1+m], y[1+m], r[1+m]
 //
 //
-void LM::BFGS_update(const bool debug, const int m, const double *dx, const double *g_new, const double *g_old,
-		     double *h, double *Hdx, double *y, double *r) {
+template <typename real>
+void LM<real>::BFGS_update(const bool debug, const int m, const real *dx, const real *g_new, const real *g_old,
+		     real *h, real *Hdx, real *y, real *r) {
 
   if (debug) printf("\n  DAMPED BFGS HESSIAN UPDATE p.541 NOCEDAL & WRIGHT");
   if (debug) printf("\n    SECANT");
@@ -148,19 +167,19 @@ void LM::BFGS_update(const bool debug, const int m, const double *dx, const doub
     Hdx[i] = dot(m, &h[i*(m+1)], dx);
     if (debug) printf(" %.2f",Hdx[i]);
   }
-  double dxHdx = dot(m, dx, Hdx);
-  double dxy = dot(m, dx, y);
-  double theta;
-  if( dxy > 0.2*dxHdx ){
-    theta = 1.0;
+  real dxHdx = dot(m, dx, Hdx);
+  real dxy = dot(m, dx, y);
+  real theta;
+  if( dxy > ((real)0.2)*dxHdx ){
+    theta = (real)1;
   }else{
-    theta = 0.8*dxHdx/(dxHdx-dxy);
+    theta = ((real)0.8)*dxHdx/(dxHdx-dxy);
   }
   if (debug) printf("  theta: %.3f", theta);
   for(int i=0;i <= m;i++){
-    r[i] = theta*y[i]+(1.0-theta)*Hdx[i];
+    r[i] = theta*y[i]+((real)1-theta)*Hdx[i];
   }
-  double dxr = dot(m, r, dx);
+  real dxr = dot(m, r, dx);
   for(int i=0;i <= m;i++){
     for(int j=0;j <= m;j++){
       h[i*(m+1)+j] += -Hdx[i]*Hdx[j]/dxHdx + r[i]*r[j]/dxr;
@@ -171,10 +190,11 @@ void LM::BFGS_update(const bool debug, const int m, const double *dx, const doub
 //
 // x[1+m]
 //
-double LM::normalize(const int m, double *x){
-  double numer;
+template <typename real>
+real LM<real>::normalize(const int m, real *x){
+  real numer;
   int j;
-  numer = 0.0;
+  numer = (real)0;
   for(j=0;j<=m;j=j+1){
     numer = numer + x[j]*x[j];
   }
@@ -189,13 +209,14 @@ double LM::normalize(const int m, double *x){
 // vector[1+m], hmwc[1+m][1+m]
 // Helpers: p[1+m][1+m], K[1+m][1+m];
 //
-void LM::projectfrommatrix(const int m, const double *vector, double *hmwc,
-			   double *p, double *K){
+template <typename real>
+void LM<real>::projectfrommatrix(const int m, const real *vector, real *hmwc,
+			   real *p, real *K){
 
   for(int i=0;i<=m;i=i+1){
     for(int j=0;j<=m;j=j+1){
       if(i == j){
-        p[i*(m+1)+j] = 1.0 - vector[i]*vector[j];
+        p[i*(m+1)+j] = (real)1 - vector[i]*vector[j];
       }
       else{
         p[i*(m+1)+j] = - vector[i]*vector[j];
@@ -204,7 +225,7 @@ void LM::projectfrommatrix(const int m, const double *vector, double *hmwc,
   }
   for(int i=0;i<=m;i=i+1){
     for(int j=0;j<=m;j=j+1){
-      K[i*(m+1)+j] = 0.0;
+      K[i*(m+1)+j] = (real)0;
       for(int k=0;k<=m;k=k+1){
         K[i*(m+1)+j] += hmwc[i*(m+1)+k]*p[k*(m+1)+j];
       }
@@ -212,7 +233,7 @@ void LM::projectfrommatrix(const int m, const double *vector, double *hmwc,
   }
   for(int i=0;i<=m;i=i+1){
     for(int j=0;j<=m;j=j+1){
-      hmwc[i*(m+1)+j] = 0.0;
+      hmwc[i*(m+1)+j] = (real)0;
       for(int k=0;k<=m;k=k+1){
         hmwc[i*(m+1)+j] += p[i*(m+1)+k]*K[k*(m+1)+j];
       }
@@ -230,8 +251,9 @@ int mod(int a, int b)
 // hmwc[1+m][1+m], smwc[1+m][1+m], w2[1+m]
 // Helpers: K[1+m][1+m], x[3][1+m], p[1+m][1+m], KK[1+m][1+m]
 //
-void LM::diagonalize(const bool debug, const int m, const double *hmwc, double *smwc, double *w2,
-		     double *K, double *x, double *KK, double *p) {
+template <typename real>
+void LM<real>::diagonalize(const bool debug, const int m, const real *hmwc, real *smwc, real *w2,
+		     real *K, real *x, real *KK, real *p) {
 
   int ndiag = 1000;
 
@@ -240,14 +262,14 @@ void LM::diagonalize(const bool debug, const int m, const double *hmwc, double *
       K[j*(m+1)+k] = hmwc[j*(m+1)+k];
     }
   }
-  double tolerance = .000001;
+  real tolerance = ((real)0.000001);
   if (debug) printf("\n  DIAGONALIZING:");
   fflush(stdout);
   for(int i=0;i <= m;i++){
     for(int j=0;j <= m;j++){
-      x[0*(m+1)+j]=randomf(-1.0,1.0);
-      x[1*(m+1)+j] = 0.0;
-      x[2*(m+1)+j] = 0.0;
+      x[0*(m+1)+j]=randomf(((real)(-1.0)), ((real)1.0));
+      x[1*(m+1)+j] = (real)0;
+      x[2*(m+1)+j] = (real)0;
     }
     normalize(m, &x[0*(m+1)]);
     int test = 0;
@@ -256,9 +278,9 @@ void LM::diagonalize(const bool debug, const int m, const double *hmwc, double *
         x[mod(k,3)*(m+1)+j] = dot(m, &K[j*(m+1)], &x[mod(k-1,3)*(m+1)]);
       }
       normalize(m, &x[mod(k,3)*(m+1)]);
-      double relerror = 0.0;
+      real relerror = (real)0;
       for(int j=0;j <= m;j++){
-        double diff = x[mod(k,3)*(m+1)+j];
+        real diff = x[mod(k,3)*(m+1)+j];
 	diff -= x[mod(k-2,3)*(m+1)+j];
         relerror = relerror + fabs(diff);
       }
@@ -288,35 +310,36 @@ void LM::diagonalize(const bool debug, const int m, const double *hmwc, double *
 //
 // crit_move = 0.001; crit_grad = 0.01; crit_dlnL = 0.0001; maxsize = 0.1;
 //
-void LM::calc_lm(const bool debug, const int m, const int *cv, const int nalist, const int nblist, const int M,
-		 const double *zA, const double *zB,
-		 const double crit_move, const double crit_grad, const double crit_dlnL, const double maxsize,
-		 double *alnLmax) {
+template <typename real>
+void LM<real>::calc_lm(const bool debug, const int m, const int *cv, const int nalist,
+		       const int nblist, const int M, const real *zA, const real *zB,
+		       const real crit_move, const real crit_grad, const real crit_dlnL, const real maxsize,
+		       real *alnLmax) {
 
-  for(int j=0;j <= m;j++) zavg[j] = 0.0;
+  for(int j=0;j <= m;j++) zavg[j] = (real)0;
 
   for(int i=0;i < nalist;i++){
     for(int j=0;j < m;j++){
       int cvj = cv[j];
-      double zAval = zA[i*M + cvj];
+      real zAval = zA[i*M + cvj];
       zavg[j] += zAval; //zA[i*M + cv[j-1]]; //zA[i][j];
     }
   }
 
   for(int j=0;j < m;j++){
-    zavg[j] /= ((double)nalist);
+    zavg[j] /= ((real)nalist);
   }
 
   /*****  SCREEN FOR STARTING VALUES  *****/
 
 
-  double mlnl, mlnlold;
+  real mlnl, mlnlold;
 
   if (debug) printf("\n  GET INITIAL VALUES BY RANDOM NUMBERS");
-  for (int j=0;j <= m;j++) a[j] = 0.0;
-  for (int j=0;j <= m;j++) alpha0[j] = 0.0;
+  for (int j=0;j <= m;j++) a[j] = (real)0;
+  for (int j=0;j <= m;j++) alpha0[j] = (real)0;
   for(int i=1;i <= 16;i++){
-    a[1] = randomf(-2.0, 2.0);
+    a[1] = randomf(((real)(-2.0)), ((real)2.0));
     a[0] = -a[1]*zavg[m];
     mlnl = mlnL(m, cv, nalist, nblist, M, a, zA, zB);
     if( mlnl < mlnL(m, cv, nalist, nblist, M, alpha0, zA, zB) ){
@@ -335,9 +358,9 @@ void LM::calc_lm(const bool debug, const int m, const int *cv, const int nalist,
     a[j] = alpha0[j];
     if (debug) printf(" %.3f ", a[j]);
     for(int k=0;k <= m;k++){
-      H[j*(m+1)+k] = 0.0;
+      H[j*(m+1)+k] = (real)0;
     }
-    H[j*(m+1)+j] = 1.0 + randomf(0.0, 0.1);
+    H[j*(m+1)+j] = (real)1 + randomf((real)0, ((real)0.1));
   }
 
   int test = 0;
@@ -348,10 +371,14 @@ void LM::calc_lm(const bool debug, const int m, const int *cv, const int nalist,
 	dmlnLold[j] = dmlnL[j];
       }
     }
-    double mlnl = grad(m, cv, nalist, nblist, M, a, zA, zB, dmlnL);
+    real mlnl = grad(m, cv, nalist, nblist, M, a, zA, zB, dmlnL);
     if (isnan(mlnl)) {
       printf("mlnl NaN\n");
-      exit(1);
+      //exit(1);
+      for(int j=0;j<=m;j++){
+	alnLmax[j] = ((real)(-1.0e40));
+      }
+      return;
     }
     if (debug) printf("\n dmlnL = %f %f", dmlnL[0], dmlnL[1]);
     if(i != 1){
@@ -361,18 +388,18 @@ void LM::calc_lm(const bool debug, const int m, const int *cv, const int nalist,
     
     // What the heck is this supposed to do?
     //double dlnLsize = dmlnL - dmlnLold;
-    double dlnLsize = 20.0;
+    real dlnLsize = (real)20.0;
 
-    double gradsize = sqrt(dot(m, dmlnL, dmlnL));
+    real gradsize = sqrt(dot(m, dmlnL, dmlnL));
     if (debug) printf("\n\n  gradients: %d  mlnL: %f  gradsize: %f", i, mlnl, gradsize);
     fflush(stdout);
     for(int j=0;j <= m;j++){
-      x[j] = 0.0;
+      x[j] = (real)0;
       for(int k=0;k <= m;k++){
 	x[j] = x[j] - (dot(m, &S[k*(m+1)], dmlnL)/K[k])*S[k*(m+1)+j];
       }
     }
-    double movesize = sqrt(dot(m,x,x));
+    real movesize = sqrt(dot(m,x,x));
     if (debug) printf("\n  RAW MOVESIZE/(B): %f", movesize);
     if(movesize > maxsize){
       for(int j=0;j <= m;j++){
@@ -409,3 +436,6 @@ void LM::calc_lm(const bool debug, const int m, const int *cv, const int nalist,
   }
 
 }
+
+template class LM<float>;
+template class LM<double>;

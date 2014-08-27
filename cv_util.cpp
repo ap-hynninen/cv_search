@@ -50,7 +50,15 @@ double getmax(const int N, const double *q) {
   return temp;
 }
 
-//
+void getminmax(const int N, const float *q, float &qmin, float &qmax) {
+  qmin = q[0];
+  qmax = q[0];
+  for(int i=1;i < N;i++){
+    if (q[i] < qmin) qmin = q[i];
+    if (q[i] > qmax) qmax = q[i];
+  }
+}
+
 //
 // q[M][N]
 // hA[N]
@@ -91,6 +99,44 @@ void read_data(const char *filename, const int N, const int M, double *q, int *h
       fscanf(data, "%lf ", &temp);
       q[j*N + i] = temp;
     }
+  }
+  printf("\n\n  accepted %d of %d\n", bad_apples, N);
+}
+
+//
+// hA[N]
+// hB[N]
+//
+void read_hAB(const char *filename, const int N, int *hA, int *hB) {
+
+  FILE *data;
+  int i, j, k, bad_apples, check, hbA, hbB;
+  
+  data = fopen(filename,"r");
+  bad_apples = 0;
+  for(i=0;i < N;i++){
+    /* shooting point number */
+    fscanf(data, "%d ", &k);
+    if(k != i+1){
+      printf("\n  ERROR READING DATA FROM %s\n",filename);
+      printf("i=%d\n",i);
+      exit(1);
+    }
+    /* backward to A ? */
+    fscanf(data, "%d ", &hbA);
+    /* backward to B ? */
+    fscanf(data, "%d ", &hbB);
+    /* forward to A ? */
+    fscanf(data, "%d ", &hA[i]);
+    /* forward to B ? */
+    fscanf(data, "%d ", &hB[i]);
+    check = hbA*hB[i] + hA[i]*hbB;
+    if(check == 2){
+      printf("\n\n  your h-values are wrong or your basins overlap! \n");
+      printf("i=%d\n",i);
+      exit(1);
+    }
+    bad_apples = bad_apples + check;
   }
   printf("\n\n  accepted %d of %d\n", bad_apples, N);
 }

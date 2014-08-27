@@ -1,3 +1,5 @@
+#ifndef LM_HPP
+#define LM_HPP
 //
 // Likelyhood Maximization class
 //
@@ -5,51 +7,54 @@
 // Based on code by Baron Peters
 //
 
+template <typename real>
 class LM {
 
 private:
   // Private variables
-  double *zavg;
-  double *alpha0;
-  double *a;
-  double *aold;
-  double *H;
-  double *dmlnL;
-  double *x;
-  double *dmlnLold;
-  double *Hdx_help;
-  double *y_help;
-  double *r_help;
-  double *S;
-  double *K;
-  double *K_help;
-  double *KK_help;
-  double *x_help;
-  double *p_help;
+  real *zavg;
+  real *alpha0;
+  real *a;
+  real *aold;
+  real *H;
+  real *dmlnL;
+  real *x;
+  real *dmlnLold;
+  real *Hdx_help;
+  real *y_help;
+  real *r_help;
+  real *S;
+  real *K;
+  real *K_help;
+  real *KK_help;
+  real *x_help;
+  real *p_help;
 
   // Private subroutines
-  double randomf(double a, double b);
-  double rxn_coor(const int m, const int *cv, const double *a, const double *z);
-  double mlnL(const int m, const int *cv, const int nalist, const int nblist, const int M,
-	      const double *a, const double *zA, const double *zB);
-  double grad(const int m, const int *cv, const int nalist, const int nblist, const int M,
-	      const double *a, const double *zA, const double *zB, double *dmlnL);
-  double dot(const int m, const double *v, const double *u);
-  void BFGS_update(const bool debug, const int m, const double *dx, const double *g_new, const double *g_old,
-		   double *h, double *Hdx, double *y, double *r);
-  double normalize(const int m, double *x);
-  void projectfrommatrix(const int m, const double *vector, double *hmwc,
-			 double *p, double *K);
-  void diagonalize(const bool debug, const int m, const double *hmwc, double *smwc, double *w2,
-		   double *K, double *x, double *KK, double *p);
+  real randomf(real a, real b);
+  real rxn_coor(const int m, const int *cv, const real *a, const real *z);
+  real mlnL(const int m, const int *cv, const int nalist, const int nblist, const int M,
+	      const real *a, const real *zA, const real *zB);
+  real grad(const int m, const int *cv, const int nalist, const int nblist, const int M,
+	      const real *a, const real *zA, const real *zB, real *dmlnL);
+  real dot(const int m, const real *v, const real *u);
+  void BFGS_update(const bool debug, const int m, const real *dx, const real *g_new, const real *g_old,
+		   real *h, real *Hdx, real *y, real *r);
+  real normalize(const int m, real *x);
+  void projectfrommatrix(const int m, const real *vector, real *hmwc,
+			 real *p, real *K);
+  void diagonalize(const bool debug, const int m, const real *hmwc, real *smwc, real *w2,
+		   real *K, real *x, real *KK, real *p);
 
 public:
   LM(const int m);
   ~LM();
 
   void calc_lm(const bool debug, const int m, const int *cv, const int nalist, const int nblist, const int M,
-	       const double *zA, const double *zB,
-	       const double crit_move, const double crit_grad, const double crit_dlnL, const double maxsize,
-	       double *alnLmax);
+	       const real *zA, const real *zB,
+	       const real crit_move, const real crit_grad, const real crit_dlnL, const real maxsize,
+	       real *alnLmax);
 
 };
+
+#endif // LM_HPP
