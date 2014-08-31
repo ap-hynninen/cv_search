@@ -4,21 +4,35 @@
 // Genetic Algorithm for collective variable (CV) finding
 // (c) Antti-Pekka Hynninen, antti.pekka.hynninen@nrel.gov
 //
+#ifdef USE_RANDOM
 #include <random>
+#endif
 #include "Coord.hpp"
-#include "Pair.hpp"
+#include "Genome.hpp"
+
+#define max_num_cv 4
 
 struct lnval_t {
   int ind;
-  double data[3];
+  double data[max_num_cv+2];
+  double key;
 };
 
 class GA {
 
 private:
 
-  // Population sizes
-  int npair;
+  // Number of genomes = population size
+  int ngenome;
+
+  // Number of collective variables (CV) in each genome (typically 1...4 or so)
+  int num_cv;
+
+  // Genome
+  Genome *genome;
+
+  // Genome CV values
+  float *genome_cv;
 
   // Coordinates
   Coord *coord;
@@ -32,12 +46,8 @@ private:
   double *zA;
   double *zB;
 
-  // Pairs
-  Pair *pair;
-  float *pair_cv;
-
   // Random number engine
-#ifdef USE_NEW_RANDOM
+#ifdef USE_RANDOM
   std::mt19937 rand_eng;
 #endif
 
@@ -47,7 +57,7 @@ private:
 
 public:
 
-  GA(Coord *coord, const int npair, const int *hA, const int *hB);
+  GA(Coord *coord, const int num_cv, const int ngenome, const int *hA, const int *hB);
   ~GA();
 
   void init_population();

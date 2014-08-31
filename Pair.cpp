@@ -1,46 +1,37 @@
 #include <cassert>
+#include <iostream>
 #include <cmath>
 #include "Pair.hpp"
 
 //
 // Class constructor
 //
-Pair::Pair(const int npair) {
-  this->npair = npair;
-
-  atom1 = new std::vector<int>[npair];
-  atom2 = new std::vector<int>[npair];
-
+Pair::Pair() {
 }
 
 //
 // Class destructor
 //
 Pair::~Pair() {
-  delete [] atom1;
-  delete [] atom2;
 }
 
 //
 // Sets cluster atoms from index range
 //
-void Pair::set(const int ipair,
-	       const int atom1_start, const int atom1_stop,
+void Pair::set(const int atom1_start, const int atom1_stop,
 	       const int atom2_start, const int atom2_stop) {
-  assert(ipair >= 0);
-  assert(ipair < npair);
   assert(atom1_stop >= atom1_start);
   assert(atom2_stop >= atom2_start);
 
-  atom1[ipair].resize(atom1_stop - atom1_start + 1);
-  atom2[ipair].resize(atom2_stop - atom2_start + 1);
+  atom1.resize(atom1_stop - atom1_start + 1);
+  atom2.resize(atom2_stop - atom2_start + 1);
 
   for (int i=0;i < (atom1_stop - atom1_start + 1);i++) {
-    atom1[ipair][i] = i + atom1_start;
+    atom1[i] = i + atom1_start;
   }
 
   for (int i=0;i < (atom2_stop - atom2_start + 1);i++) {
-    atom2[ipair][i] = i + atom2_start;
+    atom2[i] = i + atom2_start;
   }
 
 }
@@ -48,69 +39,65 @@ void Pair::set(const int ipair,
 //
 // Sets cluster atoms from two other clusters
 //
-void Pair::set(const int ipair,
-	       const std::vector<int> *cluster1,
+void Pair::set(const std::vector<int> *cluster1,
 	       const std::vector<int> *cluster2) {
-  assert(ipair >= 0);
-  assert(ipair < npair);
-
-  atom1[ipair] = *cluster1;
-  atom2[ipair] = *cluster2;
+  atom1 = *cluster1;
+  atom2 = *cluster2;
 }
 
 //
 // Adds atom i
 //
-void Pair::add1(const int ipair, const int i) {
-  atom1[ipair].push_back(i);
+void Pair::add1(const int i) {
+  atom1.push_back(i);
 }
 
 //
 // Adds atom i
 //
-void Pair::add2(const int ipair, const int i) {
-  atom2[ipair].push_back(i);
+void Pair::add2(const int i) {
+  atom2.push_back(i);
 }
 
 //
 // Flip atom1
 //
-void Pair::flip_atom1(const int ipair, const int iatom) {
+void Pair::flip_atom1(const int iatom) {
   
-  for (int i=0;i < atom1[ipair].size();i++) {
-    if (atom1[ipair][i] == iatom) {
-      atom1[ipair].erase(atom1[ipair].begin()+i);
+  for (int i=0;i < atom1.size();i++) {
+    if (atom1[i] == iatom) {
+      atom1.erase(atom1.begin()+i);
       return;
     }
   }
 
-  atom1[ipair].push_back(iatom);
+  atom1.push_back(iatom);
 
 }
 
 //
 // Flip atom2
 //
-void Pair::flip_atom2(const int ipair, const int iatom) {
+void Pair::flip_atom2(const int iatom) {
   
-  for (int i=0;i < atom2[ipair].size();i++) {
-    if (atom2[ipair][i] == iatom) {
-      atom2[ipair].erase(atom2[ipair].begin()+i);
+  for (int i=0;i < atom2.size();i++) {
+    if (atom2[i] == iatom) {
+      atom2.erase(atom2.begin()+i);
       return;
     }
   }
 
-  atom2[ipair].push_back(iatom);
+  atom2.push_back(iatom);
 
 }
 
 //
 // Returns true if atom1 contains iatom
 //
-bool Pair::contains1(const int ipair, const int iatom) {
+bool Pair::contains1(const int iatom) {
 
-  for (int i=0;i < atom1[ipair].size();i++) {
-    if (atom1[ipair][i] == iatom) {
+  for (int i=0;i < atom1.size();i++) {
+    if (atom1[i] == iatom) {
       return true;
     }
   }
@@ -121,10 +108,10 @@ bool Pair::contains1(const int ipair, const int iatom) {
 //
 // Returns true if atom2 contains iatom
 //
-bool Pair::contains2(const int ipair, const int iatom) {
+bool Pair::contains2(const int iatom) {
 
-  for (int i=0;i < atom2[ipair].size();i++) {
-    if (atom2[ipair][i] == iatom) {
+  for (int i=0;i < atom2.size();i++) {
+    if (atom2[i] == iatom) {
       return true;
     }
   }
@@ -135,24 +122,22 @@ bool Pair::contains2(const int ipair, const int iatom) {
 //
 // Evaluate
 //
-void Pair::eval(const float3 *coord, const float *mass, const int N, float *r) {
+float Pair::eval(const float3 *coord, const float *mass) {
 
-  for (int ipair=0;ipair < npair;ipair++) {
+  // Calculate center-of-mass
+  float x1, y1, z1;
+  calc_com(coord, mass, atom1.size(), atom1.data(), x1, y1, z1);
+  
+  float x2, y2, z2;
+  calc_com(coord, mass, atom2.size(), atom2.data(), x2, y2, z2);
+  
+  float dx = x1-x2;
+  float dy = y1-y2;
+  float dz = z1-z2;
 
-    // Calculate center-of-mass
-    float x1, y1, z1;
-    calc_com(coord, mass, atom1[ipair].size(), atom1[ipair].data(), x1, y1, z1);
+  //r[N*ipair] = 
 
-    float x2, y2, z2;
-    calc_com(coord, mass, atom2[ipair].size(), atom2[ipair].data(), x2, y2, z2);
-
-    float dx = x1-x2;
-    float dy = y1-y2;
-    float dz = z1-z2;
-
-    r[N*ipair] = sqrt(dx*dx + dy*dy + dz*dz);
-  }
-
+  return sqrt(dx*dx + dy*dy + dz*dz);
 }
 
 //
@@ -176,4 +161,19 @@ void Pair::calc_com(const float3 *coord, const float *mass, const int natom, con
   x *= inv_masstot;
   y *= inv_masstot;
   z *= inv_masstot;
+}
+
+//
+// Prints out the atoms involved in this pair
+//
+void Pair::print() {
+  std::cout << "[ ";
+  for (int i=0;i < atom1.size();i++) {
+    std::cout << atom1[i] + 1 << " ";
+  }
+  std::cout << "] [ ";
+  for (int i=0;i < atom2.size();i++) {
+    std::cout << atom2[i] + 1 << " ";
+  }
+  std::cout << "]" << std::endl;
 }

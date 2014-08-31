@@ -1,4 +1,4 @@
-
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -364,7 +364,8 @@ void LM<real>::calc_lm(const bool debug, const int m, const int *cv, const int n
   }
 
   int test = 0;
-  for(int i=1;test==0;i++){
+  int i;
+  for(i=1;test==0;i++){
     if(i != 1){
       mlnlold = mlnl;
       for(int j=0;j<=m;j++){
@@ -434,6 +435,8 @@ void LM<real>::calc_lm(const bool debug, const int m, const int *cv, const int n
     }
 
   }
+
+  //std::cout << "" << std::endl;
 
 }
 

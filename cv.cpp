@@ -10,17 +10,26 @@
 #include "GA.hpp"
 
 int LM_from_data();
-int LM_from_coord(char *coord_filename, char *hAB_filename);
+int LM_from_coord(char *coord_filename, char *hAB_filename, const int num_cv);
 
 int main(int argc, char **argv) {
 
   if (argc == 1) {
     LM_from_data();
-  } else if (argc == 3) {
-    LM_from_coord(argv[1], argv[2]);
   } else {
-    std::cout << "Usage: cv coord_filename hAB_filename" << std::endl;
-    return 0;
+    bool arg_ok = false;
+    int num_cv;
+    if (argc == 4) {
+      sscanf(argv[3],"%d",&num_cv);
+      if (num_cv > 0 && num_cv < 5) arg_ok = true;
+    }
+    if (arg_ok) {
+      LM_from_coord(argv[1], argv[2], num_cv);
+    } else {
+      std::cout << "Usage: cv coord_filename hAB_filename num_cv" << std::endl;
+      std::cout << "num_cv must be < 5" << std::endl;
+      return 0;
+    }
   }
 
   return 1;
@@ -38,11 +47,11 @@ double get_wall_time(){
 //
 // Does likelihood maximization from coordinate data
 //
-int LM_from_coord(char *coord_filename, char *hAB_filename) {
+int LM_from_coord(char *coord_filename, char *hAB_filename, const int num_cv) {
   printf("LM_from_coord = %s %s\n",coord_filename,hAB_filename);
 
   // Population sizes
-  const int npair = 1000;
+  const int ngenome = 1000;
   const int ncoord = 73; //882;
   const int nshoot = 20000;
 
@@ -53,13 +62,13 @@ int LM_from_coord(char *coord_filename, char *hAB_filename) {
   int *hB = new int[N];
   read_hAB(hAB_filename, N, hA, hB);
 
-  GA ga(&coord, npair, hA, hB);
+  GA ga(&coord, num_cv, ngenome, hA, hB);
   delete [] hA;
   delete [] hB;
 
   ga.init_population();
   double start = get_wall_time();
-  ga.run(1);
+  ga.run(100);
   double stop = get_wall_time();
 
   std::cout << "Elapsed time = " << (stop-start) << " s" << std::endl;
@@ -78,7 +87,7 @@ int LM_from_data() {
   const int M = 149;
 
   // Number of CV combinations
-  const int m = 1;
+  const int m = 2;
 
   // q[M][N]
   double* q = new double[M*N];
@@ -227,10 +236,12 @@ int LM_from_data() {
       max_ind[tid][1] = -1;
       int i;
 #pragma omp for private(i) schedule(dynamic)
-      for (i=0;i < M;i++) {
+      for (i=4;i < 5;i++) {
+      //for (i=0;i < M;i++) {
 	int cv[m_max];
 	cv[0] = i;
-	for (int j=0;j < M;j++) {
+	for (int j=4;j < 5;j++) {
+	  //for (int j=0;j < M;j++) {
 	  cv[1] = j;
 	  lm->calc_lm(false, m, cv, nalist, nblist, M, zA, zB, crit_move, crit_grad, crit_dlnL, 
 		      maxsize, alnLmax);

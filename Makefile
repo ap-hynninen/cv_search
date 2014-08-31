@@ -5,7 +5,7 @@ OS := $(shell uname -s)
 # Detect Intel compiler
 INTEL_COMPILER := $(shell which icc | wc -l 2> /dev/null)
 
-DEFS = USE_OPENMP
+DEFS = -DUSE_OPENMP
 
 ifeq ($(INTEL_COMPILER),1)
 CC = icc
@@ -15,16 +15,17 @@ CC = gcc
 CL = gcc
 endif
 
-OBJS = cv.o cv_util.o LM.o Coord.o GA.o Pair.o
+OBJS = cv.o cv_util.o LM.o Coord.o GA.o Pair.o RW.o Genome.o
 
 CFLAGS = -O3 
 LFLAGS = -O3
 
-ifeq ($(DEFS),USE_OPENMP)
+ifeq ($(DEFS),-DUSE_OPENMP)
 ifeq ($(INTEL_COMPILER),1)
 CFLAGS += -openmp
 LFLAGS += -openmp
 else
+DEFS += -DUSE_RANDOM
 CFLAGS += -fopenmp -march=native -Wa,-q -Wvector-operation-performance
 LFLAGS += -fopenmp -march=native -Wa,-q -Wvector-operation-performance
 endif
@@ -55,6 +56,6 @@ clean:
 
 # Compile
 %.o : %.cpp
-	$(CC) -c $(CFLAGS) -D$(DEFS) $<
-	$(CC) -MM $(CFLAGS) -D$(DEFS) $*.cpp > $*.d
+	$(CC) -c $(CFLAGS) $(DEFS) $<
+	$(CC) -MM $(CFLAGS) $(DEFS) $*.cpp > $*.d
 
