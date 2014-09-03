@@ -188,14 +188,19 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
     }
   }
 
-  for (int i=2;i < ngenome;i++) {
+  double mutate_rate = 0.4/(double)ncoord;
+
+  int i=2;
+  //  for (int i=2;i < ngenome;i++) {
+  while (i < ngenome) {
     double r;
 #ifdef USE_RANDOM
     r = pick_action(rand_eng);
 #else
     r = (double)rand()/(double)RAND_MAX;
 #endif
-    if (r < 0.5) {
+    //if (r < 0.2 || i == ngenome-1) {
+    if (r < 0.2) {
       // Mutate
       int rpair;
 #ifdef USE_RW
@@ -223,7 +228,7 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
 #else
 	  r = (double)rand()/(double)RAND_MAX;
 #endif      
-	  if (r < 0.005) {
+	  if (r < mutate_rate) {
 	    new_genome[i].get_pair(icv)->flip_atom1(j);
 	  }
 #ifdef USE_RANDOM
@@ -231,11 +236,12 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
 #else
 	  r = (double)rand()/(double)RAND_MAX;
 #endif      
-	  if (r < 0.005) {
+	  if (r < mutate_rate) {
 	    new_genome[i].get_pair(icv)->flip_atom2(j);
 	  }
 	}
       }
+      i++;
     } else {
       // Crossover
       int rpair;
@@ -270,6 +276,36 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
       int b = lnval[rpair].ind;
 
       for (int icv=0;icv < num_cv;icv++) {
+	/*
+#ifdef USE_RANDOM
+	r = pick_action(rand_eng);
+#else
+	r = (double)rand()/(double)RAND_MAX;
+#endif      
+	if (r < 0.25) {
+	  new_genome[i].get_pair(icv)->set(genome[a].get_pair(icv)->get_atom1(),
+					   genome[a].get_pair(icv)->get_atom2());
+	  new_genome[i+1].get_pair(icv)->set(genome[b].get_pair(icv)->get_atom1(),
+					     genome[b].get_pair(icv)->get_atom2());
+	} else if (r < 0.5) {
+	  new_genome[i].get_pair(icv)->set(genome[a].get_pair(icv)->get_atom1(),
+					   genome[b].get_pair(icv)->get_atom2());
+	  new_genome[i+1].get_pair(icv)->set(genome[b].get_pair(icv)->get_atom1(),
+					     genome[a].get_pair(icv)->get_atom2());
+	} else if (r < 0.75) {
+	  new_genome[i].get_pair(icv)->set(genome[b].get_pair(icv)->get_atom1(),
+					   genome[a].get_pair(icv)->get_atom2());
+	  new_genome[i+1].get_pair(icv)->set(genome[a].get_pair(icv)->get_atom1(),
+					     genome[b].get_pair(icv)->get_atom2());
+	} else {
+	  new_genome[i].get_pair(icv)->set(genome[b].get_pair(icv)->get_atom1(),
+					   genome[b].get_pair(icv)->get_atom2());
+	  new_genome[i+1].get_pair(icv)->set(genome[a].get_pair(icv)->get_atom1(),
+					     genome[a].get_pair(icv)->get_atom2());
+	}
+	*/
+
+
 	for (int j=0;j < ncoord;j++) {
 #ifdef USE_RANDOM
 	  r = pick_action(rand_eng);
@@ -292,7 +328,10 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
 	    if (genome[b].get_pair(icv)->contains2(j)) new_genome[i].get_pair(icv)->add2(j);
 	  }
 	}
+
       }
+      //i += 2;
+      i++;
     }
 
     /*
