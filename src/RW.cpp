@@ -13,7 +13,7 @@
 #else
 #include <cstdlib>
 #endif
-#include "RW.hpp"
+#include "../include/RW.hpp"
 
 //
 // Class creator

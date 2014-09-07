@@ -2,7 +2,7 @@
 #include <fstream>
 #include <string>
 #include <stdlib.h>
-#include "Coord.hpp"
+#include "../include/Coord.hpp"
 
 //
 // Class constructor

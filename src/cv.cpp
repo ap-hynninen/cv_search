@@ -4,10 +4,10 @@
 #include <iostream>
 #include <sys/time.h>
 #include <stdio.h>
-#include "cv_util.h"
-#include "LM.hpp"
-#include "Coord.hpp"
-#include "GA.hpp"
+#include "../include/cv_util.h"
+#include "../include/LM.hpp"
+#include "../include/Coord.hpp"
+#include "../include/GA.hpp"
 
 int LM_from_data();
 int LM_from_coord(char *coord_filename, char *hAB_filename, const int num_cv);

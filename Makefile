@@ -48,6 +48,7 @@ cv : $(OBJS)
 clean: 
 	rm -f *.o
 	rm -f *~
+	rm -f *~
 	rm -f cv
 	rm -f *.d
 
@@ -55,7 +56,7 @@ clean:
 -include $(OBJS:.o=.d)
 
 # Compile
-%.o : %.cpp
+%.o : src/%.cpp
 	$(CC) -c $(CFLAGS) $(DEFS) $<
-	$(CC) -MM $(CFLAGS) $(DEFS) $*.cpp > $*.d
+	$(CC) -MM $(CFLAGS) $(DEFS) src/$*.cpp > $*.d
 

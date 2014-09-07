@@ -14,10 +14,10 @@
 #ifdef USE_OPENMP
 #include <omp.h>
 #endif
-#include "cv_util.h"
-#include "LM.hpp"
-#include "RW.hpp"
-#include "GA.hpp"
+#include "../include/cv_util.h"
+#include "../include/LM.hpp"
+#include "../include/RW.hpp"
+#include "../include/GA.hpp"
 
 //
 // Class constructor

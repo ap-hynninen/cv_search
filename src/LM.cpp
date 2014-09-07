@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "LM.hpp"
+#include "../include/LM.hpp"
 
 //
 // Class creator

@@ -1,7 +1,7 @@
 #include <cassert>
 #include <iostream>
 #include <cmath>
-#include "Pair.hpp"
+#include "../include/Pair.hpp"
 
 //
 // Class constructor

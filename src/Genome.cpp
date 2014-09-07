@@ -3,7 +3,7 @@
 // (c) Antti-Pekka Hynninen, antti.pekka.hynninen@nrel.gov
 //
 #include <iostream>
-#include "Genome.hpp"
+#include "../include/Genome.hpp"
 
 //
 // Class creators
