@@ -161,7 +161,7 @@ void GPVariables::printOn (ostream& os)
 
 
 // Load operation
-const char* GPVariables::load (istream& is)
+char* GPVariables::load (istream& is)
 {
   is >> PopulationSize;
   is >> NumberOfGenerations;

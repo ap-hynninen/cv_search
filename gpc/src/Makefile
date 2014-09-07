@@ -38,12 +38,13 @@ CPPFLAGS	= $(CFLAGS) -I$(GPINCLUDE)
 # Create the GP library. Use either ld (for dynamic libraries) or ar
 # and ranlib.
 $(TARGET) : $(OBJS) 
-#	$(AR) -r $(TARGET) $(OBJS)
-#	$(RANLIB) $(TARGET)
-	$(LD) -r -o $(TARGET) $(OBJS)
+	$(AR) -r $(TARGET) $(OBJS)
+	$(RANLIB) $(TARGET)
+#	$(LD) -r -o $(TARGET) $(OBJS)
 
 clean:
 	rm -f $(OBJS) *~
+	rm -f ../lib/*
 
 superclean: clean
 	rm -f $(TARGET)

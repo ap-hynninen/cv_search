@@ -6,10 +6,12 @@ OBJS = 	cv.o \
 	GA.o \
 	Pair.o \
 	RW.o \
-	Genome.o
+	Genome.o \
+	cvGP.o
 
 ../cv : $(OBJS)
-	$(CL) $(LFLAGS) -o ../cv $(OBJS)
+	$(CL) $(LFLAGS) -o ../cv $(OBJS) -L../gpc/lib -lgp
+#	$(CL) $(LFLAGS) -o ../cv $(OBJS) -L../../gpc++0.5.2/lib -lgp
 
 clean: 
 	rm -f *~

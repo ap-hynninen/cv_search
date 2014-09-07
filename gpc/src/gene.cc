@@ -182,7 +182,7 @@ void GPGene::resolveNodeValues (GPNodeSet& ns)
 
 
 // Load operation
-const char* GPGene::load (istream& is)
+char* GPGene::load (istream& is)
 {
   // We can load only the node's value.  This has to be transformed to
   // a pointer to a node by function resolveNodeValues().
