@@ -4,7 +4,7 @@ OBJS = 	cv.o \
 	LM.o \
 	Coord.o \
 	GA.o \
-	Pair.o \
+	Gene.o \
 	RW.o \
 	Genome.o \
 	cvGP.o

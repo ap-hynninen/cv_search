@@ -8,11 +8,24 @@
 #include "../include/LM.hpp"
 #include "../include/Coord.hpp"
 #include "../include/GA.hpp"
+#include "../include/cvGP.hpp"
+
+int nthread = 1;
 
 int LM_from_data();
 int LM_from_coord(char *coord_filename, char *hAB_filename, const int num_cv);
 
 int main(int argc, char **argv) {
+
+#ifdef USE_OPENMP
+#pragma omp parallel
+  {
+    if (omp_get_thread_num() == 0) nthread = omp_get_num_threads();
+  }
+  printf("Using %d OpenMP threads\n",nthread);
+#else
+  printf("Not using OpenMP threads\n");
+#endif
 
   if (argc == 1) {
     LM_from_data();
@@ -55,12 +68,14 @@ int LM_from_coord(char *coord_filename, char *hAB_filename, const int num_cv) {
   const int ncoord = 73; //882;
   const int nshoot = 20000;
 
-  Coord coord(coord_filename, ncoord, nshoot);
+  Coord coord(coord_filename, ncoord, nshoot, 12.0f);
 
   const int N = coord.get_nshoot();
   int *hA = new int[N];
   int *hB = new int[N];
   read_hAB(hAB_filename, N, hA, hB);
+
+  //doGP(&coord, num_cv, hA, hB);
 
   GA ga(&coord, num_cv, ngenome, hA, hB);
   delete [] hA;
@@ -70,7 +85,6 @@ int LM_from_coord(char *coord_filename, char *hAB_filename, const int num_cv) {
   double start = get_wall_time();
   ga.run(100);
   double stop = get_wall_time();
-
   std::cout << "Elapsed time = " << (stop-start) << " s" << std::endl;
 
   return 1;
@@ -155,16 +169,6 @@ int LM_from_data() {
   //
 
 #define MAX_NTHREAD 24
-  int nthread=1;
-#ifdef USE_OPENMP
-#pragma omp parallel
-  {
-    if (omp_get_thread_num() == 0) nthread = omp_get_num_threads();
-  }
-  printf("Using %d OpenMP threads\n",nthread);
-#else
-  printf("Not using OpenMP threads\n");
-#endif
 
   //
 #define m_max 3

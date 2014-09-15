@@ -54,7 +54,9 @@ Fax:    (UK) 061 745 5999
 void GPPopulation::evaluate ()
 {
   // loop through whole population evaluating every GP
-  for (int n=0; n<containerSize(); n++)
+  int n;
+#pragma omp parallel for private(n) schedule(dynamic)
+  for (n=0; n<containerSize(); n++)
     {
       GP* current=NthGP (n);
 #if GPINTERNALCHECK

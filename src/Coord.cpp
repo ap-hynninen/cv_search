@@ -7,7 +7,7 @@
 //
 // Class constructor
 //
-Coord::Coord(const char *coord_filename, const int ncoord, const int nshoot) {
+Coord::Coord(const char *coord_filename, const int ncoord, const int nshoot, const float rnn) {
 
   this->ncoord = ncoord;
   this->nshoot = nshoot;
@@ -16,8 +16,12 @@ Coord::Coord(const char *coord_filename, const int ncoord, const int nshoot) {
   resid = NULL;
   mass = NULL;
   residue_start = NULL;
+  nnlist_pos = NULL;
+  nnlist = NULL;
 
   load_coord(coord_filename);
+  
+  build_nnlist(rnn);
 
   setup_residues();
 }
@@ -36,6 +40,69 @@ Coord::~Coord() {
   if (resid != NULL) delete [] resid;
   if (mass != NULL) delete [] mass;
   if (residue_start != NULL) delete [] residue_start;
+  if (nnlist_pos != NULL) delete [] nnlist_pos;
+  if (nnlist != NULL) delete [] nnlist;
+}
+
+//
+// Builds neighborlist using the first shooting point
+//
+void Coord::build_nnlist(const float rnn) {
+  // Estimate number of neighbors each atom has
+  float xmin = 1.0e10;
+  float ymin = 1.0e10;
+  float zmin = 1.0e10;
+  float xmax = -1.0e10;
+  float ymax = -1.0e10;
+  float zmax = -1.0e10;
+  for (int i=0;i < ncoord;i++) {
+    xmin = (xmin < coord[0][i].x) ? xmin : coord[0][i].x;
+    ymin = (ymin < coord[0][i].y) ? ymin : coord[0][i].y;
+    zmin = (zmin < coord[0][i].z) ? zmin : coord[0][i].z;
+    xmax = (xmax > coord[0][i].x) ? xmax : coord[0][i].x;
+    ymax = (ymax > coord[0][i].y) ? ymax : coord[0][i].y;
+    zmax = (zmax > coord[0][i].z) ? zmax : coord[0][i].z;
+  }
+  double vol = (xmax-xmin)*(ymax-ymin)*(zmax-zmin);
+  nnlist_len = (int)((4.0/3.0*3.14159265358979323846*rnn*rnn*rnn)*((double)ncoord)*1.2/vol) + 1;
+  nnlist_pos = new int[ncoord+1];
+  nnlist = new int[nnlist_len];
+  // Build neighborlist
+  int pos = 0;
+  float rnn2 = rnn*rnn;
+  for (int i=0;i < ncoord;i++) {
+    float xi = coord[0][i].x;
+    float yi = coord[0][i].y;
+    float zi = coord[0][i].z;
+    nnlist_pos[i] = pos;
+    for (int j=0;j < ncoord;j++) {
+      if (i != j) {
+	float xj = coord[0][j].x;
+	float yj = coord[0][j].y;
+	float zj = coord[0][j].z;
+	float dx = xi-xj;
+	float dy = yi-yj;
+	float dz = zi-zj;
+	float r2 = dx*dx + dy*dy + dz*dz;
+	if (r2 < rnn2) {
+	  // Reallocate if needed
+	  if (pos == nnlist_len) {
+	    int nnlist_len_new = (int)((double)nnlist_len*1.5);
+	    int *nnlist_new = new int[nnlist_len_new];
+	    for (int t=0;t < nnlist_len;t++) {
+	      nnlist_new[t] = nnlist[t];
+	    }
+	    delete [] nnlist;
+	    nnlist = nnlist_new;
+	    nnlist_len = nnlist_len_new;
+	  }
+	  // Add to list
+	  nnlist[pos++] = j;
+	}
+      }
+    }
+  }
+  nnlist_pos[ncoord] = pos;
 }
 
 //

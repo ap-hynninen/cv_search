@@ -4,17 +4,17 @@
 // Genome class
 // (c) Antti-Pekka Hynninen, antti.pekka.hynninen@nrel.gov
 //
-#include "Pair.hpp"
+#include "Gene.hpp"
 
 class Genome {
 
 private:
 
-  // Number of pairs in this genome (typically num_cv <= 3 or so)
+  // Number of genes in this genome (typically num_cv <= 3 or so)
   int num_cv;
 
-  // Pairs in this genome (pair[0..num_cv-1])
-  Pair *pair;
+  // Genes in this genome (gene[0..num_cv-1])
+  Gene *gene;
 
 public:
 
@@ -23,7 +23,7 @@ public:
   ~Genome();
 
   void set_num_cv(const int num_cv);
-  Pair* get_pair(const int ipair) {return &pair[ipair];}
+  Gene* get_gene(const int igene) {return &gene[igene];}
 
 };
 

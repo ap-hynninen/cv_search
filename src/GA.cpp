@@ -66,21 +66,16 @@ GA::~GA() {
 //
 void GA::init_population() {
 
-#ifdef USE_RANDOM
-  std::uniform_real_distribution<> pick_coord(0.0, 1.0);
-#endif
-
   int ncoord = coord->get_ncoord();
-  double coord_pick_rate = 5.0/(double)ncoord;
 
   int istart = 0;
   /*
-  if (num_cv == 1) {
+    if (num_cv == 1) {
     // Glu 217 OE2 - Glu 217 HE2
     genome[0].get_pair(0)->add1(27);
     genome[0].get_pair(0)->add2(28);
     istart = 1;
-  } else if (num_cv == 2) {
+    } else if (num_cv == 2) {
     // -1 anomeric carbon - Glu 212 OE2
     genome[0].get_pair(0)->add1(53-1);
     genome[0].get_pair(0)->add2(13-1);
@@ -88,7 +83,7 @@ void GA::init_population() {
     genome[0].get_pair(1)->add1(53-1);
     genome[0].get_pair(1)->add2(55-1);
     istart = 1;
-  } else if (num_cv == 3) {
+    } else if (num_cv == 3) {
     // -1 anomeric carbon - Glu 212 OE2
     genome[0].get_pair(0)->add1(53-1);
     genome[0].get_pair(0)->add2(13-1);
@@ -99,45 +94,48 @@ void GA::init_population() {
     genome[0].get_pair(2)->add1(28-1);
     genome[0].get_pair(2)->add2(29-1);
     istart = 1;
-  }
+    }
   */
 
+#ifdef USE_RANDOM
+  std::uniform_int_distribution<> pick_coord(0, ncoord-1);
+  std::uniform_real_distribution<> pick_type(0.0, 1.0);
+#endif
   for (int i=istart;i < ngenome;i++) {
     for (int icv=0;icv < num_cv;icv++) {
-      for (int j=0;j < ncoord;j++) {
-	double r;
+      int a, b;
 #ifdef USE_RANDOM
-	r = pick_coord(rand_eng);
+      a = pick_coord(rand_eng);
+      b = pick_coord(rand_eng);
 #else
-	r = (double)rand()/(double)RAND_MAX;
+      a = rand() % ncoord;
+      b = rand() % ncoord;
 #endif
-	if (r < coord_pick_rate) {
-	  genome[i].get_pair(icv)->add1(j);
-	}
+      genome[i].get_gene(icv)->add(a);
+      genome[i].get_gene(icv)->add(b);
+      double r;
 #ifdef USE_RANDOM
-	r = pick_coord(rand_eng);
+      r = pick_type(rand_eng);
 #else
-	r = (double)rand()/(double)RAND_MAX;
+      r = (double)rand()/(double)RAND_MAX;
 #endif
-	if (r < coord_pick_rate) {
-	  genome[i].get_pair(icv)->add2(j);
-	}
+      if (r < 0.5) {
+	// Build a triplet
+	int c;
+#ifdef USE_RANDOM
+	c = pick_coord(rand_eng);
+#else
+	c = rand() % ncoord;
+#endif
+	genome[i].get_gene(icv)->add(c);
       }
-    }
-
-    /*
-    if (genome[i].get_pair(0)->get_natom1() <= 5 &&
-	genome[i].get_pair(0)->get_natom2() <= 5) {
-      i++;
-    }
-    */
-
+    }	
   }
 
   int nprint = (ngenome >= 10) ? 10 : 1;
   for (int i=0;i < nprint;i++) {
     for (int icv=0;icv < num_cv;icv++) {
-      genome[i].get_pair(icv)->print();
+      genome[i].get_gene(icv)->print();
     }
   }
 
@@ -153,12 +151,13 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
 
 #ifdef USE_RANDOM
   std::uniform_int_distribution<> pick_genome(0,ntop_genome-1);
+  std::uniform_int_distribution<> pick_coord(0,ncoord-1);
   std::uniform_real_distribution<> pick_action(0.0, 1.0);
 #endif
 
   std::cout << "-------------- New Top of the Crop -------------" << std::endl;
   for (int icv=0;icv < num_cv;icv++) {
-    genome[lnval[0].ind].get_pair(icv)->print();
+    genome[lnval[0].ind].get_gene(icv)->print();
   }
   int nprint = (ngenome >= 10) ? 10 : 1;
   for (int i=0;i < nprint;i++) {
@@ -183,25 +182,23 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
   for (int i=0;i < 2;i++) {
     int a = lnval[i].ind;
     for (int icv=0;icv < num_cv;icv++) {
-      new_genome[i].get_pair(icv)->set(genome[a].get_pair(icv)->get_atom1(),
-				       genome[a].get_pair(icv)->get_atom2());
+      new_genome[i].get_gene(icv)->set(genome[a].get_gene(icv)->get_atom());
     }
   }
 
-  double mutate_rate = 0.4/(double)ncoord;
+  //double mutate_rate = 0.5;
 
-  int i=2;
-  //  for (int i=2;i < ngenome;i++) {
-  while (i < ngenome) {
+  for (int i=2;i < ngenome;i++) {
     double r;
 #ifdef USE_RANDOM
     r = pick_action(rand_eng);
 #else
     r = (double)rand()/(double)RAND_MAX;
 #endif
-    //if (r < 0.2 || i == ngenome-1) {
-    if (r < 0.2) {
-      // Mutate
+    if (r < 0.10) {
+      // ---------------------------------------------
+      // Mutate 
+      // ---------------------------------------------
       int rpair;
 #ifdef USE_RW
 #ifdef USE_RANDOM
@@ -218,32 +215,51 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
 #endif
       int a = lnval[rpair].ind;
 
+      // Change one random atom
+      int n = 0;
       for (int icv=0;icv < num_cv;icv++) {
-	new_genome[i].get_pair(icv)->set(genome[a].get_pair(icv)->get_atom1(),
-					 genome[a].get_pair(icv)->get_atom2());
-
-	for (int j=0;j < ncoord;j++) {
-#ifdef USE_RANDOM
-	  r = pick_action(rand_eng);
-#else
-	  r = (double)rand()/(double)RAND_MAX;
-#endif      
-	  if (r < mutate_rate) {
-	    new_genome[i].get_pair(icv)->flip_atom1(j);
-	  }
-#ifdef USE_RANDOM
-	  r = pick_action(rand_eng);
-#else
-	  r = (double)rand()/(double)RAND_MAX;
-#endif      
-	  if (r < mutate_rate) {
-	    new_genome[i].get_pair(icv)->flip_atom2(j);
-	  }
-	}
+	new_genome[i].get_gene(icv)->set(genome[a].get_gene(icv)->get_atom());
+	n += genome[a].get_gene(icv)->get_natom();
       }
-      i++;
+      int ipick;
+#ifdef USE_RANDOM
+      ipick = pick_coord(rand_eng) % n;
+#else
+      ipick = rand() % n;
+#endif
+      for (int icv=0;icv < num_cv;icv++) {
+	if (ipick < genome[a].get_gene(icv)->get_natom()) {
+	  int aa;
+	  if (true) {
+	    // Pick a neighbor of current atom
+	    int ac = (*(new_genome[i].get_gene(icv)->get_atom()))[ipick];
+	    int start = coord->get_nnlist_start(ac);
+	    int end = coord->get_nnlist_end(ac);
+	    int n = end - start + 1;
+#ifdef USE_RANDOM
+	    aa = pick_coord(rand_eng) % n;
+#else
+	    aa = rand() % n;
+#endif
+	    aa = coord->get_nnlist(start+aa);
+	  } else {
+	    // Pick a random atom
+#ifdef USE_RANDOM
+	    aa = pick_coord(rand_eng);
+#else
+	    aa = rand() % ncoord;
+#endif
+	  }
+	  new_genome[i].get_gene(icv)->replace(ipick, aa);
+	  break;
+	}
+	ipick -= genome[a].get_gene(icv)->get_natom();
+      }
+
     } else {
+      // ----------
       // Crossover
+      // ----------
       int rpair;
 #ifdef USE_RW
 #ifdef USE_RANDOM
@@ -276,77 +292,24 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
       int b = lnval[rpair].ind;
 
       for (int icv=0;icv < num_cv;icv++) {
-	/*
 #ifdef USE_RANDOM
 	r = pick_action(rand_eng);
 #else
 	r = (double)rand()/(double)RAND_MAX;
 #endif      
-	if (r < 0.25) {
-	  new_genome[i].get_pair(icv)->set(genome[a].get_pair(icv)->get_atom1(),
-					   genome[a].get_pair(icv)->get_atom2());
-	  new_genome[i+1].get_pair(icv)->set(genome[b].get_pair(icv)->get_atom1(),
-					     genome[b].get_pair(icv)->get_atom2());
-	} else if (r < 0.5) {
-	  new_genome[i].get_pair(icv)->set(genome[a].get_pair(icv)->get_atom1(),
-					   genome[b].get_pair(icv)->get_atom2());
-	  new_genome[i+1].get_pair(icv)->set(genome[b].get_pair(icv)->get_atom1(),
-					     genome[a].get_pair(icv)->get_atom2());
-	} else if (r < 0.75) {
-	  new_genome[i].get_pair(icv)->set(genome[b].get_pair(icv)->get_atom1(),
-					   genome[a].get_pair(icv)->get_atom2());
-	  new_genome[i+1].get_pair(icv)->set(genome[a].get_pair(icv)->get_atom1(),
-					     genome[b].get_pair(icv)->get_atom2());
+	if (r < 0.5) {
+	  new_genome[i].get_gene(icv)->set(genome[a].get_gene(icv)->get_atom());
 	} else {
-	  new_genome[i].get_pair(icv)->set(genome[b].get_pair(icv)->get_atom1(),
-					   genome[b].get_pair(icv)->get_atom2());
-	  new_genome[i+1].get_pair(icv)->set(genome[a].get_pair(icv)->get_atom1(),
-					     genome[a].get_pair(icv)->get_atom2());
+	  new_genome[i].get_gene(icv)->set(genome[b].get_gene(icv)->get_atom());
 	}
-	*/
-
-
-	for (int j=0;j < ncoord;j++) {
-#ifdef USE_RANDOM
-	  r = pick_action(rand_eng);
-#else
-	  r = (double)rand()/(double)RAND_MAX;
-#endif      
-	  if (r < 0.5) {
-	    if (genome[a].get_pair(icv)->contains1(j)) new_genome[i].get_pair(icv)->add1(j);
-	  } else {
-	    if (genome[b].get_pair(icv)->contains1(j)) new_genome[i].get_pair(icv)->add1(j);
-	  }
-#ifdef USE_RANDOM
-	  r = pick_action(rand_eng);
-#else
-	  r = (double)rand()/(double)RAND_MAX;
-#endif      
-	  if (r < 0.5) {
-	    if (genome[a].get_pair(icv)->contains2(j)) new_genome[i].get_pair(icv)->add2(j);
-	  } else {
-	    if (genome[b].get_pair(icv)->contains2(j)) new_genome[i].get_pair(icv)->add2(j);
-	  }
-	}
-
       }
-      //i += 2;
-      i++;
     }
-
-    /*
-    if (new_genome[i].get_pair(0)->get_natom1() <= 5 &&
-	new_genome[i].get_pair(0)->get_natom2() <= 5) {
-      i++;
-    }
-    */
-
   }
 
+  // Set genome = new_genome
   for (int i=0;i < ngenome;i++) {
     for (int icv=0;icv < num_cv;icv++) {
-      genome[i].get_pair(icv)->set(new_genome[i].get_pair(icv)->get_atom1(),
-				   new_genome[i].get_pair(icv)->get_atom2());
+      genome[i].get_gene(icv)->set(new_genome[i].get_gene(icv)->get_atom());
     }
   }
 
@@ -362,7 +325,7 @@ void GA::eval_cv_values() {
     for (int i=0;i < ngenome;i++) {
       for (int icv=0;icv < num_cv;icv++) {
 	genome_cv[ishoot + (i*num_cv + icv)*nshoot] = 
-	  genome[i].get_pair(icv)->eval(coord->get_coord(ishoot), coord->get_mass());
+	  genome[i].get_gene(icv)->eval(coord->get_coord(ishoot));
       }
     }
   }
@@ -428,14 +391,11 @@ void GA::run(const int niter) {
       for (i=0;i < ngenome;i++) {
 	int cv[num_cv];
 	for(int icv=0;icv < num_cv;icv++) cv[icv] = i*num_cv + icv;
-	bool zero_natom = false;
+	bool skip_lm = false;
 	for(int icv=0;icv < num_cv;icv++) {
-	  if (genome[i].get_pair(icv)->get_natom1() == 0 ||
-	      genome[i].get_pair(icv)->get_natom2() == 0) zero_natom = true;
-	  if (genome[i].get_pair(icv)->get_natom1() >= 5 ||
-	      genome[i].get_pair(icv)->get_natom2() >= 5) zero_natom = true;
+	  skip_lm = (skip_lm || genome[i].get_gene(icv)->has_duplicate());
 	}
-	if (zero_natom) {
+	if (skip_lm) {
 	  for (int jj=0;jj < num_cv+2;jj++) alnLmax[jj] = -1.0e10;
 	} else {
 	  lm.calc_lm(false, num_cv, cv, nalist, nblist, ngenome*num_cv, zA, zB,
