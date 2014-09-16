@@ -65,6 +65,7 @@ void Coord::build_nnlist(const float rnn) {
   }
   double vol = (xmax-xmin)*(ymax-ymin)*(zmax-zmin);
   nnlist_len = (int)((4.0/3.0*3.14159265358979323846*rnn*rnn*rnn)*((double)ncoord)*1.2/vol) + 1;
+  nnlist_len = (nnlist_len < ncoord*ncoord) ? nnlist_len : ncoord*ncoord;
   nnlist_pos = new int[ncoord+1];
   nnlist = new int[nnlist_len];
   // Build neighborlist
@@ -88,6 +89,7 @@ void Coord::build_nnlist(const float rnn) {
 	  // Reallocate if needed
 	  if (pos == nnlist_len) {
 	    int nnlist_len_new = (int)((double)nnlist_len*1.5);
+	    nnlist_len_new = (nnlist_len_new < ncoord*ncoord) ? nnlist_len_new : ncoord*ncoord;
 	    int *nnlist_new = new int[nnlist_len_new];
 	    for (int t=0;t < nnlist_len;t++) {
 	      nnlist_new[t] = nnlist[t];
@@ -102,6 +104,7 @@ void Coord::build_nnlist(const float rnn) {
       }
     }
   }
+  std::cout << "Coord::build_nnlist, pos/ncoord = " << pos/ncoord << std::endl;
   nnlist_pos[ncoord] = pos;
 }
 
@@ -189,9 +192,14 @@ void Coord::load_coord(const char *filename) {
 	    mass[i] = 12.011;
 	  } else if (atomname[0] == 'O') {
 	    mass[i] = 15.999;
+	  } else if (atomname[1] == 'H') {
+	    mass[i] = 1.008;
 	  } else {
-	    std::cerr << "Unidentified atom type: i=" << i << " atomname="<< atomname << std::endl;
-	    exit(1);
+	    std::cerr << "Unidentified atom type at " << i+1 
+		      << " atomname="<< atomname << " atomid = "<< atomid
+		      << " assigned as H" << std::endl;
+	    //exit(1);
+	    mass[i] = 1.008;
 	  }
 	  // Set residue ID
 	  resid[i] = resid_tmp;

@@ -64,11 +64,12 @@ int LM_from_coord(char *coord_filename, char *hAB_filename, const int num_cv) {
   printf("LM_from_coord = %s %s\n",coord_filename,hAB_filename);
 
   // Population sizes
-  const int ngenome = 1000;
-  const int ncoord = 73; //882;
+  const int ngenome = 10000;
+  //const int ncoord = 73;
+  const int ncoord = 882;
   const int nshoot = 20000;
 
-  Coord coord(coord_filename, ncoord, nshoot, 12.0f);
+  Coord coord(coord_filename, ncoord, nshoot, 20.0f);
 
   const int N = coord.get_nshoot();
   int *hA = new int[N];

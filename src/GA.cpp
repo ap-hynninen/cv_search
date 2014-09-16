@@ -164,11 +164,13 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
     std::cout << lnval[i].ind << " " << lnval[i].key << std::endl;
   }
 
-  //#define USE_RW
+#define USE_RW
 #ifdef USE_RW
   // Setup roulette wheel selection
   double* w = new double[ngenome];
-  for (int i=0;i < ngenome;i++) w[i] = 1.0/((-lnval[i].key)*(-lnval[i].key));
+  //for (int i=0;i < ngenome;i++) w[i] = 1.0/((-lnval[i].key)*(-lnval[i].key));
+  w[0] = 1.0;
+  for (int i=1;i < ngenome;i++) w[i] = 0.95*w[i-1];
   RW rw(ngenome, w);
   delete [] w;
 #endif
