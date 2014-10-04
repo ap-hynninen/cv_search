@@ -22,8 +22,8 @@
 //
 // Class constructor
 //
-GA::GA(Coord *coord, const int num_cv, const int ngenome, const int *hA, const int *hB) : 
-  ngenome(ngenome), coord(coord), num_cv(num_cv) {
+GA::GA(Coord *coord, const int num_cv, const int ngenome, const double p_mutate, const int *hA, const int *hB) : 
+  ngenome(ngenome), coord(coord), num_cv(num_cv), p_mutate(p_mutate) {
   assert(num_cv <= max_num_cv);
 
   const int nshoot = coord->get_nshoot();
@@ -132,12 +132,14 @@ void GA::init_population() {
     }	
   }
 
+  /*
   int nprint = (ngenome >= 10) ? 10 : 1;
   for (int i=0;i < nprint;i++) {
     for (int icv=0;icv < num_cv;icv++) {
       genome[i].get_gene(icv)->print();
     }
   }
+  */
 
 }
 
@@ -155,16 +157,17 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
   std::uniform_real_distribution<> pick_action(0.0, 1.0);
 #endif
 
-  std::cout << "-------------- New Top of the Crop -------------" << std::endl;
+  std::cout << "Best individual, fitness " << lnval[0].key << " :" << std::endl;
   for (int icv=0;icv < num_cv;icv++) {
     genome[lnval[0].ind].get_gene(icv)->print();
   }
+  std::cout << "Rest of top 10:" << std::endl;
   int nprint = (ngenome >= 10) ? 10 : 1;
   for (int i=0;i < nprint;i++) {
-    std::cout << lnval[i].ind << " " << lnval[i].key << std::endl;
+    std::cout << lnval[i].key << std::endl;
   }
 
-#define USE_RW
+  //#define USE_RW
 #ifdef USE_RW
   // Setup roulette wheel selection
   double* w = new double[ngenome];
@@ -188,8 +191,6 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
     }
   }
 
-  //double mutate_rate = 0.5;
-
   for (int i=2;i < ngenome;i++) {
     double r;
 #ifdef USE_RANDOM
@@ -197,7 +198,7 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
 #else
     r = (double)rand()/(double)RAND_MAX;
 #endif
-    if (r < 0.10) {
+    if (r < p_mutate) {
       // ---------------------------------------------
       // Mutate 
       // ---------------------------------------------
@@ -232,7 +233,7 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
       for (int icv=0;icv < num_cv;icv++) {
 	if (ipick < genome[a].get_gene(icv)->get_natom()) {
 	  int aa;
-	  if (true) {
+	  if (false) {
 	    // Pick a neighbor of current atom
 	    int ac = (*(new_genome[i].get_gene(icv)->get_atom()))[ipick];
 	    int start = coord->get_nnlist_start(ac);
@@ -412,6 +413,7 @@ void GA::run(const int niter) {
     // Sort values
     std::sort(lnval.begin(), lnval.end(), compare_val);
 
+    std::cout << "----------------- Iteration " << iter << " -----------------" << std::endl;
     build_next_generation(lnval);
 
   }

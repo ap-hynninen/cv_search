@@ -2,6 +2,10 @@
 #include <omp.h>
 #endif
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <cstring>
 #include <sys/time.h>
 #include <stdio.h>
 #include "../include/cv_util.h"
@@ -13,7 +17,7 @@
 int nthread = 1;
 
 int LM_from_data();
-int LM_from_coord(char *coord_filename, char *hAB_filename, const int num_cv);
+int LM_from_coord(const char *inp_filename);
 
 int main(int argc, char **argv) {
 
@@ -24,25 +28,18 @@ int main(int argc, char **argv) {
   }
   printf("Using %d OpenMP threads\n",nthread);
 #else
-  printf("Not using OpenMP threads\n");
+  printf("Not using OpenMP threads (you should be!)\n");
 #endif
 
-  if (argc == 1) {
-    LM_from_data();
+  if (argc == 2) {
+    LM_from_coord(argv[1]);
   } else {
-    bool arg_ok = false;
-    int num_cv;
-    if (argc == 4) {
-      sscanf(argv[3],"%d",&num_cv);
-      if (num_cv > 0 && num_cv < 5) arg_ok = true;
-    }
-    if (arg_ok) {
-      LM_from_coord(argv[1], argv[2], num_cv);
-    } else {
-      std::cout << "Usage: cv coord_filename hAB_filename num_cv" << std::endl;
-      std::cout << "num_cv must be < 5" << std::endl;
-      return 0;
-    }
+    std::cout << "Collective Variable (CV) search using Genetic Algorithm" << std::endl;
+    std::cout << "(c) Antti-Pekka Hynninen, 2014" << std::endl;
+    std::cout << "aphynninen@hotmail.com" << std::endl;
+    std::cout << std::endl;
+    std::cout << "Usage: cv cv.inp" << std::endl;
+    return 0;
   }
 
   return 1;
@@ -57,36 +54,129 @@ double get_wall_time(){
   return (double)time.tv_sec + (double)time.tv_usec * .000001;
 }
 
+void read_inp(const char* inp_filename, int& num_cv, int& num_shoot, int& num_coord, int& num_gene,
+	      int& num_iter, double& p_mutate, char* filename_coord, char* filename_hAB) {
+  num_cv = 0;
+  num_shoot = 0;
+  num_coord = 0;
+  num_gene = 0;
+  num_iter = 0;
+  p_mutate = 0.0;
+  bool filename_coord_set = false;
+  bool filename_hAB_set = false;
+  std::ifstream file;
+  file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+  try {
+    file.open(inp_filename);
+    std::string str;
+    while (!file.eof()) {
+      std::getline(file, str);
+      // Strip out # comments
+      size_t compos = str.find("#");
+      if (compos != std::string::npos) str.erase(str.begin()+compos, str.end());
+      if (str.compare(0, strlen("num_cv "), "num_cv ") == 0) {
+	num_cv = std::stoi(str.substr(strlen("num_cv ")));
+      } else if (str.compare(0, strlen("num_shoot "), "num_shoot ") == 0) {
+	num_shoot = std::stoi(str.substr(strlen("num_shoot ")));
+      } else if (str.compare(0, strlen("num_coord "), "num_coord ") == 0) {
+	num_coord = std::stoi(str.substr(strlen("num_coord ")));
+      } else if (str.compare(0, strlen("num_gene "), "num_gene ") == 0) {
+	num_gene = std::stoi(str.substr(strlen("num_gene ")));
+      } else if (str.compare(0, strlen("num_iter "), "num_iter ") == 0) {
+	num_iter = std::stoi(str.substr(strlen("num_iter ")));
+      } else if (str.compare(0, strlen("p_mutate "), "p_mutate ") == 0) {
+	p_mutate = std::stold(str.substr(strlen("p_mutate ")));
+      } else if (str.compare(0, strlen("filename_coord "), "filename_coord ") == 0) {
+	std::strcpy(filename_coord, str.substr(strlen("filename_coord ")).c_str());
+	filename_coord_set = true;
+      } else if (str.compare(0, strlen("filename_hAB "), "filename_hAB ") == 0) {
+	std::strcpy(filename_hAB, str.substr(strlen("filename_hAB ")).c_str());
+	filename_hAB_set = true;
+      } else {
+	std::cout << "Invalid entry in " << inp_filename << ":" << std::endl;
+	std::cout << str << std::endl;
+      }
+    }
+    file.close();
+  }
+  catch(std::ifstream::failure e) {
+    std::cerr << "Error opening/reading/closing file " << inp_filename << std::endl;
+    exit(1);
+  }
+
+  if (num_cv <= 0) {
+    std::cout << "Error: num_cv not set in " << inp_filename << std::endl;
+    exit(1);
+  }
+  if (num_shoot <= 0) {
+    std::cout << "Error: num_shoot not set in " << inp_filename << std::endl;
+    exit(1);
+  }
+  if (num_coord <= 0) {
+    std::cout << "Error: num_coord not set in " << inp_filename << std::endl;
+    exit(1);
+  }
+  if (num_gene <= 0) {
+    std::cout << "Error: num_gene not set in " << inp_filename << std::endl;
+    exit(1);
+  }
+  if (num_iter <= 0) {
+    std::cout << "Error: num_iter not set in " << inp_filename << std::endl;
+    exit(1);
+  }
+  if (p_mutate < 0.0 || p_mutate > 1.0) {
+    std::cout << "Error: p_mutate set incorrectly in " << inp_filename << std::endl;
+    exit(1);
+  }
+  if (!filename_coord_set) {
+    std::cout << "Error: filename_coord not set in " << inp_filename << std::endl;
+    exit(1);
+  }
+  if (!filename_hAB_set) {
+    std::cout << "Error: filename_hAB not set in " << inp_filename << std::endl;
+    exit(1);
+  }
+
+}
+
 //
 // Does likelihood maximization from coordinate data
 //
-int LM_from_coord(char *coord_filename, char *hAB_filename, const int num_cv) {
-  printf("LM_from_coord = %s %s\n",coord_filename,hAB_filename);
+int LM_from_coord(const char *inp_filename) {
 
   // Population sizes
-  const int ngenome = 500;
-  const int ncoord = 73;
-  //const int ncoord = 882;
-  const int nshoot = 20000;
+  int ngenome;
+  int ncoord;
+  int nshoot;
+  int num_cv;
+  int num_iter;
+  double p_mutate;
+  char coord_filename[2048], hAB_filename[2048];
+
+  read_inp(inp_filename, num_cv, nshoot, ncoord, ngenome, num_iter, p_mutate, coord_filename, hAB_filename);
 
   Coord coord(coord_filename, ncoord, nshoot, 4.0f);
 
-  const int N = coord.get_nshoot();
-  int *hA = new int[N];
-  int *hB = new int[N];
-  read_hAB(hAB_filename, N, hA, hB);
+  std::cout << "num_cv = " << num_cv << " num_gene = " << ngenome << " num_iter = " << num_iter
+	    << " p_mutate = " << p_mutate << std::endl;
+
+  //const int N = coord.get_nshoot();
+  int *hA = new int[nshoot];
+  int *hB = new int[nshoot];
+  read_hAB(hAB_filename, nshoot, hA, hB);
 
   //doGP(&coord, num_cv, hA, hB);
 
-  GA ga(&coord, num_cv, ngenome, hA, hB);
+  GA ga(&coord, num_cv, ngenome, p_mutate, hA, hB);
   delete [] hA;
   delete [] hB;
 
   ga.init_population();
+  std::cout << std::endl;
   double start = get_wall_time();
-  ga.run(100);
+  ga.run(num_iter);
   double stop = get_wall_time();
-  std::cout << "Elapsed time = " << (stop-start) << " s" << std::endl;
+  std::cout << "Elapsed time = " << (stop-start)/60.0 << " min" << std::endl;
 
   return 1;
 }

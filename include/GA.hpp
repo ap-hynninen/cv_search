@@ -28,6 +28,9 @@ private:
   // Number of collective variables (CV) in each genome (typically 1...4 or so)
   int num_cv;
 
+  // Mutation probability
+  double p_mutate;
+
   // Genome
   Genome *genome;
 
@@ -57,7 +60,7 @@ private:
 
 public:
 
-  GA(Coord *coord, const int num_cv, const int ngenome, const int *hA, const int *hB);
+  GA(Coord *coord, const int num_cv, const int ngenome, const double p_mutate, const int *hA, const int *hB);
   ~GA();
 
   void init_population();
