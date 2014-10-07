@@ -2,7 +2,7 @@ num_cv 2
 num_shoot 20000
 num_coord 73
 num_gene 500
-num_iter 100
+num_iter 40
 filename_coord coords.txt
 filename_hAB 20k_hAB.txt
 p_mutate 0.1

@@ -4,6 +4,7 @@
 //
 #include <iostream>
 #include <cassert>
+#include <cmath>
 #include <algorithm>
 #include <vector>
 #ifdef USE_RANDOM
@@ -167,13 +168,15 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
     std::cout << lnval[i].key << std::endl;
   }
 
-  //#define USE_RW
+#define USE_RW
 #ifdef USE_RW
   // Setup roulette wheel selection
   double* w = new double[ngenome];
   //for (int i=0;i < ngenome;i++) w[i] = 1.0/((-lnval[i].key)*(-lnval[i].key));
+  // Set fac such that fac^ngenome = 0.01
+  double fac = exp(log(0.01)/ngenome);
   w[0] = 1.0;
-  for (int i=1;i < ngenome;i++) w[i] = 0.99*w[i-1];
+  for (int i=1;i < ngenome;i++) w[i] = fac*w[i-1];
   RW rw(ngenome, w);
   delete [] w;
 #endif
@@ -213,7 +216,7 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
 #ifdef USE_RANDOM
       rpair = pick_genome(rand_eng);
 #else
-      rpair = rand() % ntop_pair;
+      rpair = rand() % ntop_genome;
 #endif
 #endif
       int a = lnval[rpair].ind;
@@ -274,7 +277,7 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
 #ifdef USE_RANDOM
       rpair = pick_genome(rand_eng);
 #else
-      rpair = rand() % ntop_pair;
+      rpair = rand() % ntop_genome;
 #endif
 #endif
       int a = lnval[rpair].ind;
@@ -289,7 +292,7 @@ void GA::build_next_generation(std::vector<lnval_t> &lnval) {
 #ifdef USE_RANDOM
       rpair = pick_genome(rand_eng);
 #else
-      rpair = rand() % ntop_pair;
+      rpair = rand() % ntop_genome;
 #endif
 #endif
       int b = lnval[rpair].ind;

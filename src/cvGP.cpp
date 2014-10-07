@@ -303,6 +303,9 @@ float3 cvGene::evaluate_vec(float3 *coord) {
   if (isTerminal()) {
     return coord[node->value()];
   }
+
+  GPExitSystem("cvGene::evaluate_vec","Should not end up here");
+  exit(1);
 }
 
 // Evaluate the fitness of a GP and save it into the class variable
@@ -326,7 +329,7 @@ void cvGP::evaluate ()
   LM<double> *lm = lm_th[tid];
 
   // Evaluate main tree for each shooting point
-  for (int ishoot;ishoot < nshoot;ishoot++) {
+  for (int ishoot=0;ishoot < nshoot;ishoot++) {
     for (int icv=0;icv < num_cv;icv++) {
       genome_cv[ishoot + icv*nshoot] = 
 	NthMyGene(icv)->evaluate((float *)cvCoord->get_coord(ishoot), *this, 0.0f, 0.0f);
@@ -343,7 +346,7 @@ void cvGP::evaluate ()
   // Try to reproduce |x12-x53|
   // ---------------------------
   stdFitness = 0.0;
-  for (int ishoot;ishoot < nshoot;ishoot++) {
+  for (int ishoot=0;ishoot < nshoot;ishoot++) {
     stdFitness += fabs(genome_cv[ishoot] - correct_cv[ishoot]);
   }
   */
@@ -499,7 +502,7 @@ void translate_rotate_coord(Coord *coord) {
   const int nshoot = coord->get_nshoot();
   const int ncoord = coord->get_ncoord();
 
-  for (int ishoot;ishoot < nshoot;ishoot++) {
+  for (int ishoot=0;ishoot < nshoot;ishoot++) {
     float tx = ((double)rand()/(double)RAND_MAX - 0.5)*10.0;
     float ty = ((double)rand()/(double)RAND_MAX - 0.5)*10.0;
     float tz = ((double)rand()/(double)RAND_MAX - 0.5)*10.0;
@@ -515,7 +518,7 @@ void translate_rotate_coord(Coord *coord) {
 
 void calc_correct_cv(Coord *coord) {
   const int nshoot = coord->get_nshoot();
-  for (int ishoot;ishoot < nshoot;ishoot++) {
+  for (int ishoot=0;ishoot < nshoot;ishoot++) {
     float3 *v = coord->get_coord(ishoot);
     float x = v[12].x - v[53].x;
     float y = v[12].y - v[53].y;
