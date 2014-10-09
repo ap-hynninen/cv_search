@@ -2,25 +2,26 @@ Genetic Algorithm search for collective variables
 (c) Antti-Pekka Hynninen, 2014
 aphynninen@hotmail.com
 
-#######################################################################################################
+##############################################################################
 Compiling:
-#######################################################################################################
+##############################################################################
 
 make
 
 Use "make clean" to clean up the build
 
-#######################################################################################################
+##############################################################################
 Running: cv input_file.inp
-#######################################################################################################
+##############################################################################
 cv input_file.inp
 
-#######################################################################################################
+##############################################################################
 Example:
-#######################################################################################################
+##############################################################################
 
 See example -directory for an example run.
-You can run the example by going in to the "example" -directory and typing "../cv cv.inp"
+You can run the example by going in to the "example" -directory and typing
+../cv cv.inp
 
 The input file in the example is the following:
 
@@ -35,9 +36,9 @@ filename_hAB 20k_hAB.txt     # filename for shooting end points
 p_mutate 0.1                 # mutation rate for the GA
 ----------------------------
 
-#######################################################################################################
+##############################################################################
 File formats:
-#######################################################################################################
+##############################################################################
 
 The shooting point coordinate file lists coordinates for every shooting point
 after another:
@@ -46,9 +47,11 @@ Lines 1             to   num_coord are shooting point 1 coordinates
 Lines num_coord+1   to 2*num_coord are shooting point 2 coordinates
 Lines 2*num_coord+1 to 3*num_coord are shooting point 3 coordinates
 ...
-Lines (num_shoot-1)*num_coord+1 to num_shoot*num_coord are shooting point num_shoot coordinates
+Lines (num_shoot-1)*num_coord+1 to num_shoot*num_coord are shooting point
+num_shoot coordinates
 
-In total then the file has num_shoot*num_coord lines. Each line has the atom info in the PDB file format:
+In total then the file has num_shoot*num_coord lines. Each line has the
+atom info in the PDB file format:
 
 ATOM   2976  N   GLU   212      -1.000   0.454   9.001  0.00  0.00
 ATOM   2977  HN  GLU   212      -1.539  -0.142   9.592  0.00  0.00
@@ -56,6 +59,8 @@ ATOM   2978  CA  GLU   212      -1.339   0.630   7.631  0.00  0.00
 ATOM   2979  HA  GLU   212      -0.934   1.530   7.192  0.00  0.00
 ....
 
+This format can be build from multiple .pdb files using the "cut.sh" script,
+see next section.
 
 Shooting end point file format is:
 
@@ -69,3 +74,13 @@ Shooting end point file format is:
 19999 1 0 1 0
 20000 1 0 1 0
 
+##############################################################################
+cut.sh script
+##############################################################################
+
+cut_coord/cut.sh        - script
+cut_coord/residues.txt  - residue selection
+
+cut.sh script can be used to cut out select residues from multiple .pdb files.
+Note that the residue names mush exactly match, including whitespace, the
+residue names in the .pdb files. This is because the script uses a grep.
